@@ -1,17 +1,33 @@
 <ion-view view-title="Dashboard">
-  <ion-content class="padding">
-    <h2>Welcome to Ionic</h2>
-    <p>
-    This is the Ionic starter for tabs-based apps. For other starters and ready-made templates, check out the <a href="http://market.ionic.io/starters" target="_blank">Ionic Market</a>.
-    </p>
-    <p>
-      To edit the content of each tab, edit the corresponding template file in <code>www/templates/</code>. This template is <code>www/templates/tab-dash.html</code>
-    </p>
-    <p>
-    If you need help with your app, join the Ionic Community on the <a href="http://forum.ionicframework.com" target="_blank">Ionic Forum</a>. Make sure to <a href="http://twitter.com/ionicframework" target="_blank">follow us</a> on Twitter to get important updates and announcements for Ionic developers.
-    </p>
-    <p>
-      <b>Psst!</b> - Try <a href="http://view.ionic.io/">Ionic View</a> to easily share and test your app with clients and co-workers.
-    </p>
-  </ion-content>
+    <ion-content class="padding">
+        <div class="card">
+            <div class="item item-text-wrap">
+               Vehicles - {{carDetails.status}}
+               <h6>{{carDetails.id}}</h6>
+            </div>
+        </div>
+        <ion-list>
+            <h3 class="item item-text-wrap">Nearby Vehicles</h3>{{vehicles}}
+            <ion-item class="item-remove-animate item-icon-right" ng-repeat="vehicle in vehicles" type="item-text-wrap">
+                <h2>
+
+                    {{vehicle.uuid}}
+                </h2>
+                <i class="icon ion-chevron-right icon-accessory">
+                </i>
+                <ion-option-button class="button-balanced" ng-click="follow(vehicle)">
+                    Follow
+                </ion-option-button>
+            </ion-item>
+        </ion-list>
+
+        <div class="card" ng-show="carDetails.follow.length > 0">
+            <div class="item item-text-wrap">Followed Vehicles</div>
+            <div class="item item-text-wrap">
+               <div class="list list-inset" ng-repeat="vehicle in carDetails.follow">
+                 <div class="item">{{vehicle.uuid}}</div>
+               </div>
+            </div>
+        </div>
+    </ion-content>
 </ion-view>
