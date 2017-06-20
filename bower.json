@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "pubnub": "^4.10.0",
-    "pubnub-angular": "^4.0.2"
+    "pubnub-angular": "^4.0.2",
+    "ngCordova": "^0.1.27-alpha"
   }
 }
