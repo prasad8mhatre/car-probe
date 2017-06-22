@@ -1,6 +1,7 @@
+
 angular.module('starter.controllers', [])
 
-.controller('DashCtrl', function($scope, Pubnub, $rootScope, $cordovaGeolocation, $ionicPlatform, $window) {
+.controller('DashCtrl', function($scope, Pubnub, $rootScope, $cordovaGeolocation, $ionicPlatform, $window, locationIQ, pubnub_pub_key, pubnub_sub_key, ApiService) {
   console.log("Dash Board controller started");
   $scope.carDetails = {};
   $scope.currentChannel = '';
@@ -17,6 +18,49 @@ angular.module('starter.controllers', [])
   $scope.carDetails.location = {};
   $scope.carDetails.vib = new Map();
   $scope.onload = true;
+debugger;
+  /*-----------------------
+  Models
+  ------------------------*/
+  function V2VMessage(uuid, lat, long, speed, heading, edgeId, status){
+    this.uuid = uuid;
+    this.location = {
+      lat, long
+    };
+    this.heading = heading;
+    this.speed = speed;
+    this.edgeId = edgeId;
+    this.status = status;
+  }
+
+  function Car(uuid, lat, long, speed, heading, edgeId, status, vib){
+    V2VMessage.call(this, uuid, lat, long, speed, heading, edgeId, status);
+    this.vib = vib;
+  }
+
+  function TrafficUpdate(uuid, lat, long, speed, heading, edgeId, status, isCar ){
+    V2VMessage.call(this, uuid, lat, long, speed, heading, edgeId, status);
+    this.isCar = isCar;
+  }
+
+  /*-----
+  End Models
+  --------*/
+
+  /* ------------------- 
+  Global Object
+  ----------------------*/
+
+  var Global_Car = new Car();
+  Global_Car.location = {};
+  Global_Car.vib = new Map();
+  /*var Global_TrafficUpdate = new TrafficUpdate();
+  var Global_V2VMessage = new V2VMessage();*/
+  $scope.carDetails = Global_Car;
+
+  /* ------------------- 
+  End Global Object
+  ----------------------*/
 
   //location tracking
   $ionicPlatform.ready(function() {
@@ -59,9 +103,9 @@ angular.module('starter.controllers', [])
   });
 
   $scope.postLocationActivity = function(position){
-    $scope.carDetails.location.lat  = position.coords.latitude;
-    $scope.carDetails.location.long = position.coords.longitude;
-    $scope.carDetails.speed = position.coords.speed;
+    Global_Car.location.lat  = position.coords.latitude;
+    Global_Car.location.long = position.coords.longitude;
+    Global_Car.speed = position.coords.speed;
     $scope.sendTrafficUpdate();
     $scope.setCurrentChannel();
   }
@@ -73,9 +117,15 @@ angular.module('starter.controllers', [])
         channels: [$scope.subscribedChannels.local_channels]
       });
 
-      //TODO:find road id from lat long and set subscriber to channel
-
-      $scope.subscribeToChannel($scope.subscribedChannels.local_channels);
+      //find road id from lat long and set subscriber to channel
+      ApiService.getRoadId(Car.location.lat, Car.location.long).then(function(resp){
+        $scope.subscribedChannels.local_channels = [];
+        $scope.subscribedChannels.local_channels.push(resp.osm_id);
+        Global_Car.edgeId = resp.osm_id;
+        $scope.subscribeToChannel($scope.subscribedChannels.local_channels);
+        $scope.setChannelState($scope.subscribedChannels.local_channels);
+      });
+      
     }
   }
 
@@ -88,14 +138,28 @@ angular.module('starter.controllers', [])
   //pubnub
 
   var newUUID = 'car-' + $scope.randomIntFromInterval(1,1000);
-  $scope.carDetails.id = newUUID;
+  Global_Car.uuid = newUUID;
 
 
   Pubnub.init({
     uuid: newUUID, 
-    publishKey: 'pub-c-a995f85d-b499-41c6-8df5-84a42066aa2e',
-    subscribeKey: 'sub-c-056727a4-54cb-11e7-97ec-0619f8945a4f'
+    publishKey: pubnub_pub_key,
+    subscribeKey: pubnub_sub_key
   });
+
+  $scope.setChannelState = function(channel){
+    Pubnub.setState(
+      {
+          state: Global_Car,
+          uuid: Global_Car.uuid,
+          channels: [channel]
+      },
+      function (status) {
+          // handle state setting response
+          console.log("Status:" + status);
+      }
+    );
+  } 
 
   $scope.subscribeToChannel = function(channels){
     Pubnub.subscribe({
@@ -117,16 +181,15 @@ angular.module('starter.controllers', [])
           console.log(envelope.message);
           var message = envelope.message;
 
-          if(envelope.channel != $scope.subscribedChannels.global_channel){
+          if(envelope.channel != $scope.subscribedChannels.global_channel && $scope.carDetails.id != envelope.message.uuid){
            
             /*1. handle cluster head selection - clustering algorithm
-              2. handle rerouting algorithm
+              find lowest speed vehicle
             */
-            //find lowest speed vehicle
             var lowestSpeed = {};
             lowestSpeed.speed = Number.MAX_SAFE_INTEGER;            
-            lowestSpeed.vehicle = {};
-            for (var [key, value] of $scope.carDetails.vib.entries()) {
+            lowestSpeed.vehicle = new Car();
+            for (var [key, value] of Global_Car.vib.entries()) {
               console.log(key + ' = ' + value);
               if(value.speed < lowestSpeed.speed ){
                 lowestSpeed.speed = value.speed;
@@ -135,15 +198,15 @@ angular.module('starter.controllers', [])
             }
 
             //notify other vehicles
-            if(lowestSpeed.vehicle.uuid == $scope.carDetails.id){
-              $scope.carDetails.status = 'Cluster Head';
+            if(lowestSpeed.vehicle.uuid == Global_Car.uuid){
+              Global_Car.status = 'Cluster Head';
               //pubnub notify
-              $scope.publishMessage($scope.carDetails ,$scope.subscribedChannels.local_channels);
+              $scope.publishMessage(Global_Car, $scope.subscribedChannels.local_channels);
             }
 
           }else if(!message.isCar){
               //handle traffic notification
-
+              // 2. handle rerouting algorithm  
           } 
       });
   });
@@ -152,7 +215,8 @@ angular.module('starter.controllers', [])
   $rootScope.$on(Pubnub.getPresenceEventNameFor($scope.getAllChannels()), function (ngEvent, pnEvent) {
           // apply presence event (join|leave) on users list
           console.log(pnEvent);
-          var vehicle = {};
+          debugger;
+          var vehicle = new Car();
           vehicle.uuid = pnEvent.uuid;
           debugger;
           $scope.addVehicle(vehicle);
@@ -166,6 +230,7 @@ angular.module('starter.controllers', [])
       }
   });
 
+  //pubnub here now
   if( $scope.subscribedChannels.local_channels.length != 0){
     Pubnub.hereNow(
         {
@@ -181,10 +246,10 @@ angular.module('starter.controllers', [])
               if(!angular.isUndefined(response.channels.traffic_channel)){
                  angular.forEach(response.channels.traffic_channel.occupants, function(data){
                     if(!$scope.isPresent(data.uuid)){
-                      if(data.uuid != $scope.carDetails.id){
-                        var vehicle = {};
+                      if(data.uuid != Global_Car.uuid){
+                        var vehicle = new Car();
                         vehicle.uuid = data.uuid;
-                        $scope.vehicles.push(vehicle);
+                        Global_Car.vib.set(vehicle.uuid, vehicle);
                        }
                     }
                   });
@@ -205,21 +270,19 @@ angular.module('starter.controllers', [])
 
 
   $scope.sendTrafficUpdate = function(){
-    var trafficUpdate = {};
-    trafficUpdate.location = {};
-    trafficUpdate.location.lat = $scope.carDetails.location.lat;
-    trafficUpdate.location.long = $scope.carDetails.location.long;
-    trafficUpdate.speed = $scope.carDetails.speed;
-    trafficUpdate.vehiclePubNubId = $scope.carDetails.id;
-    trafficUpdate.isCar = true;
-   // trafficUpdate.edgeId = traffic.edgeId; // need to find?
-    $scope.publishMessage(trafficUpdate, $scope.global_channel);
+    debugger;
+    //uuid, lat, long, speed, heading, edgeId, status, vib
+    var trafficUpdate = new TrafficUpdate(Global_Car.uuid, Global_Car.location.lat, Global_Car.location.long, 
+                              Global_Car.speed, Global_Car.heading, Global_Car.edgeId, Global_Car.status, true);
+    
+    trafficUpdate.edgeId = Global_Car.edgeId; // Done
+    $scope.publishMessage(trafficUpdate, $scope.subscribedChannels.global_channel);
   }
     
   
   $scope.addVehicle = function (vehicle) {
-    if(vehicle.uuid != $scope.carDetails.id){
-        $scope.carDetails.vib.set(vehicle.uuid, vehicle);
+    if(vehicle.uuid != Global_Car.uuid){
+        Global_Car.vib.set(vehicle.uuid, vehicle);
     }
   }
 
@@ -236,40 +299,13 @@ angular.module('starter.controllers', [])
     }
   } 
 
-
-  $scope.follow = function(vehicle) {
-    var isFound = false;
-    angular.forEach($scope.carDetails.follow, function (val) {
-      if(vehicle.uuid == val.uuid){
-        isFound = true;
-      }
-    })
-    if(!isFound){
-       $scope.carDetails.follow.push(vehicle);
-       $scope.changeState(vehicle);
-    }
-  };
-
-  $scope.isPresent = function(item){
-    var isPresent = false;
-    angular.forEach($scope.vehicles, function(data){
-      if(data.uuid == item.uuid){
-        isPresent = true;
-      }
-    })
-    return isPresent;
-  };
-
-
-  
-
-  
+ 
   //tear down - unsubscribe
   window.addEventListener("beforeunload", function (e) {
      debugger;
      watch.clearWatch();
      Pubnub.unsubscribe({
-        channels: [$scope.currentChannel]
+        channels: [$scope.getAllChannels()]
      });
   });
 

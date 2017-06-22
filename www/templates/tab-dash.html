@@ -3,12 +3,12 @@
         <div class="card">
             <div class="item item-text-wrap">
                Vehicles - {{carDetails.status}}
-               <h6>{{carDetails.id}}</h6>
+               <h6>{{carDetails.uuid}}</h6>
             </div>
         </div>
         <ion-list>
-            <h3 class="item item-text-wrap">Nearby Vehicles</h3>{{vehicles}}
-            <ion-item class="item-remove-animate item-icon-right" ng-repeat="vehicle in vehicles" type="item-text-wrap">
+            <h3 class="item item-text-wrap">Nearby Vehicles</h3>
+            <ion-item class="item-remove-animate item-icon-right" ng-repeat="vehicle in carDetails.vib" type="item-text-wrap">
                 <h2>
 
                     {{vehicle.uuid}}
