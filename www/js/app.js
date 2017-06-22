@@ -57,4 +57,6 @@ angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', '
 
 })
 
-.constant('locationIQ', 'e9fbe60b2244e1a62302');
+.constant('locationIQ', 'e9fbe60b2244e1a62302')
+.constant('pubnub_pub_key', 'pub-c-a995f85d-b499-41c6-8df5-84a42066aa2e')
+.constant('pubnub_sub_key', 'sub-c-056727a4-54cb-11e7-97ec-0619f8945a4f');

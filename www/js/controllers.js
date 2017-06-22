@@ -116,17 +116,22 @@ debugger;
       Pubnub.unsubscribe({
         channels: [$scope.subscribedChannels.local_channels]
       });
+    }
 
-      //find road id from lat long and set subscriber to channel
-      ApiService.getRoadId(Car.location.lat, Car.location.long).then(function(resp){
+    //find road id from lat long and set subscriber to channel
+    ApiService.getRoadId(Global_Car.location.lat, Global_Car.location.long).then(function(resp){
+     
+      if(resp.data.osm_type == 'way'){
+        debugger;
         $scope.subscribedChannels.local_channels = [];
-        $scope.subscribedChannels.local_channels.push(resp.osm_id);
-        Global_Car.edgeId = resp.osm_id;
+        $scope.subscribedChannels.local_channels.push(resp.data.osm_id);
+        Global_Car.edgeId = resp.data.osm_id;
         $scope.subscribeToChannel($scope.subscribedChannels.local_channels);
         $scope.setChannelState($scope.subscribedChannels.local_channels);
-      });
+      }
+    });
       
-    }
+
   }
 
   $scope.randomIntFromInterval =  function (min,max)
@@ -156,7 +161,7 @@ debugger;
       },
       function (status) {
           // handle state setting response
-          console.log("Status:" + status);
+          //console.log("Status:" + status);
       }
     );
   } 
