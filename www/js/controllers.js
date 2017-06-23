@@ -9,6 +9,8 @@ angular.module('starter.controllers', [])
   $scope.subscribedChannels = {};
   $scope.subscribedChannels.global_channel = $scope.global_channel;
   $scope.subscribedChannels.local_channels = [];
+  $scope.fromLocation = '';
+  $scope.toLocation = '';
   
 
   $scope.carDetails.status = "Cluster Member";
@@ -18,7 +20,7 @@ angular.module('starter.controllers', [])
   $scope.carDetails.location = {};
   $scope.carDetails.vib = new Map();
   $scope.onload = true;
-debugger;
+
   /*-----------------------
   Models
   ------------------------*/
@@ -68,10 +70,11 @@ debugger;
     $cordovaGeolocation
       .getCurrentPosition(posOptions)
       .then(function (position) {
-       debugger
-        $scope.subscribeToChannel($scope.subscribedChannels.global_channel);
+       
+        $scope.subscribeToChannel($scope.getAllChannels());
+        console.log("subscribered to channel:" + $scope.subscribedChannels.global_channel);
         $scope.postLocationActivity(position);
-        debugger;
+        
         $scope.onload = false;
       }, function(err) {
         // error
@@ -96,7 +99,7 @@ debugger;
       function(position) {
         if(!$scope.onload){
           $scope.postLocationActivity(position);
-          debugger;
+          $scope.logSubscribedChannels();
         }
         
     });
@@ -108,10 +111,24 @@ debugger;
     Global_Car.speed = position.coords.speed;
     $scope.sendTrafficUpdate();
     $scope.setCurrentChannel();
+
   }
 
+  $scope.logSubscribedChannels = function(){
+    Pubnub.whereNow(
+        {
+            uuid: Global_Car.uuid
+        },
+        function (status, response) {
+            // handle status, response
+            
+            console.log(JSON.stringify(response));
+        }
+    );
+  } 
+
   $scope.setCurrentChannel = function(){
-    debugger;
+    
     if( $scope.subscribedChannels.local_channels.length != 0){
       Pubnub.unsubscribe({
         channels: [$scope.subscribedChannels.local_channels]
@@ -122,12 +139,17 @@ debugger;
     ApiService.getRoadId(Global_Car.location.lat, Global_Car.location.long).then(function(resp){
      
       if(resp.data.osm_type == 'way'){
-        debugger;
+        
         $scope.subscribedChannels.local_channels = [];
-        $scope.subscribedChannels.local_channels.push(resp.data.osm_id);
+        $scope.subscribedChannels.local_channels.push("local_channel-" + resp.data.osm_id);
         Global_Car.edgeId = resp.data.osm_id;
-        $scope.subscribeToChannel($scope.subscribedChannels.local_channels);
+        
+        $scope.subscribeToChannel($scope.getAllChannels());
+        
+        $scope.logSubscribedChannels();
+        console.log("subscribered channel: " + $scope.subscribedChannels.local_channels);
         $scope.setChannelState($scope.subscribedChannels.local_channels);
+
       }
     });
       
@@ -167,6 +189,7 @@ debugger;
   } 
 
   $scope.subscribeToChannel = function(channels){
+    
     Pubnub.subscribe({
       channels  : [channels],
       withPresence: true,
@@ -185,8 +208,9 @@ debugger;
           // add message to the messages list
           console.log(envelope.message);
           var message = envelope.message;
+          
 
-          if(envelope.channel != $scope.subscribedChannels.global_channel && $scope.carDetails.id != envelope.message.uuid){
+          if(envelope.channel != $scope.subscribedChannels.global_channel && Global_Car.uuid != envelope.message.uuid){
            
             /*1. handle cluster head selection - clustering algorithm
               find lowest speed vehicle
@@ -220,10 +244,10 @@ debugger;
   $rootScope.$on(Pubnub.getPresenceEventNameFor($scope.getAllChannels()), function (ngEvent, pnEvent) {
           // apply presence event (join|leave) on users list
           console.log(pnEvent);
-          debugger;
+          
           var vehicle = new Car();
           vehicle.uuid = pnEvent.uuid;
-          debugger;
+          
           $scope.addVehicle(vehicle);
           
   });
@@ -245,7 +269,7 @@ debugger;
         },
         function (status, response) {
             // handle status, response
-            debugger;
+            
             if(!status.error){
               console.log("online users: " + response.totalOccupancy );
               if(!angular.isUndefined(response.channels.traffic_channel)){
@@ -264,6 +288,8 @@ debugger;
     );
   }
 
+  
+
   $scope.publishMessage = function(data, channel){
       Pubnub.publish({
           channel: [channel],
@@ -275,7 +301,7 @@ debugger;
 
 
   $scope.sendTrafficUpdate = function(){
-    debugger;
+    
     //uuid, lat, long, speed, heading, edgeId, status, vib
     var trafficUpdate = new TrafficUpdate(Global_Car.uuid, Global_Car.location.lat, Global_Car.location.long, 
                               Global_Car.speed, Global_Car.heading, Global_Car.edgeId, Global_Car.status, true);
@@ -304,10 +330,53 @@ debugger;
     }
   } 
 
+
+
+  $scope.navigate = function(fromLocation, toLocation){
+     var geocoder = new google.maps.Geocoder();
+     debugger;
+
+     //from location
+     geocoder.geocode({'address': fromLocation.formatted_address + ""}, function(results, status) {
+        if (status === 'OK') {
+          var fromlocationL = {};
+          fromlocationL.lat = results[0].geometry.location.lat();
+          fromlocationL.long = results[0].geometry.location.lng();
+          $scope.fromLocationLatLong = fromlocationL;
+            debugger;
+            //to location
+            geocoder.geocode({'address': toLocation.formatted_address + ""}, function(toresults, tostatus) {
+            if (tostatus === 'OK') {
+              var toLocationL = {};
+              toLocationL.lat = toresults[0].geometry.location.lat();
+              toLocationL.long = toresults[0].geometry.location.lng();
+
+              $scope.toLocationLatLong = toLocationL;
+
+              //TODO: fire graphopper api for direction
+               debugger;
+               ApiService.getDirection($scope.fromLocationLatLong, $scope.toLocationLatLong).then(function(resp){
+                  debugger;
+                  $scope.directionInstruction = resp.data.paths[0].instructions;
+               });  
+
+
+
+            } else {
+              alert('Geocode was not successful for the following reason: ' + tostatus);
+            }
+          });
+        } else {
+          alert('Geocode was not successful for the following reason: ' + status);
+        }
+      });
+
+  }
+
  
   //tear down - unsubscribe
   window.addEventListener("beforeunload", function (e) {
-     debugger;
+     
      watch.clearWatch();
      Pubnub.unsubscribe({
         channels: [$scope.getAllChannels()]

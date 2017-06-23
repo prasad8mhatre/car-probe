@@ -4,6 +4,7 @@
     "description": "car-probe: An Ionic project",
     "dependencies": {
         "cordova-plugin-geolocation": "^2.4.3",
+        "cordova-plugin-nativegeocoder": "^1.0.2",
         "gulp": "^3.5.6",
         "gulp-concat": "^2.2.0",
         "gulp-minify-css": "^0.3.0",
@@ -28,7 +29,8 @@
     "cordovaPlatforms": [],
     "cordova": {
         "plugins": {
-            "cordova-plugin-geolocation": {}
+            "cordova-plugin-geolocation": {},
+            "cordova-plugin-nativegeocoder": {}
         }
     }
 }

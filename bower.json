@@ -7,6 +7,7 @@
   "dependencies": {
     "pubnub": "^4.10.0",
     "pubnub-angular": "^4.0.2",
-    "ngCordova": "^0.1.27-alpha"
+    "ngCordova": "^0.1.27-alpha",
+    "ion-google-place": "^0.0.1"
   }
 }

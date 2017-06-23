@@ -6,28 +6,37 @@
                <h6>{{carDetails.uuid}}</h6>
             </div>
         </div>
-        <ion-list>
-            <h3 class="item item-text-wrap">Nearby Vehicles</h3>
-            <ion-item class="item-remove-animate item-icon-right" ng-repeat="vehicle in carDetails.vib" type="item-text-wrap">
-                <h2>
+        <!-- inputs and navigation  -->
+        <div class="card">
+          <div class="row">
+            <div class="col">
+                <span>From:</span>
+                <ion-google-place placeholder="From Address" ng-model="fromLocation" search-placeholder="From Address"  />
+            </div>
+            </div>
+            <div class="row">
+            <div class="col">
+                <span>To:</span>
+                <ion-google-place placeholder="To Address" ng-model="toLocation" search-placeholder="To Address" />
+            </div>
+          </div>
+          <div class="row" >
+            <button class="button button-block button-positive" ng-click="navigate(fromLocation, toLocation)">
+              Navigate
+            </button>
+          </div>
 
-                    {{vehicle.uuid}}
-                </h2>
-                <i class="icon ion-chevron-right icon-accessory">
-                </i>
-                <ion-option-button class="button-balanced" ng-click="follow(vehicle)">
-                    Follow
-                </ion-option-button>
-            </ion-item>
-        </ion-list>
+        </div>
 
-        <div class="card" ng-show="carDetails.follow.length > 0">
-            <div class="item item-text-wrap">Followed Vehicles</div>
-            <div class="item item-text-wrap">
-               <div class="list list-inset" ng-repeat="vehicle in carDetails.follow">
-                 <div class="item">{{vehicle.uuid}}</div>
-               </div>
+         <div class="card">
+            <div class="item item-text-wrap" ng-repeat="instruction in directionInstruction">
+              <div class="row">
+                  <div class="col col-75">{{instruction.text}}<h6>{{instruction.street_name}}</h6></div>
+                  <div class="col col-25">{{instruction.distance}} m <h6>{{instruction.time}} s</h6></div>
+              </div>
+              
             </div>
         </div>
+      
     </ion-content>
 </ion-view>
