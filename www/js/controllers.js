@@ -56,6 +56,8 @@ angular.module('starter.controllers', [])
   var Global_Car = new Car();
   Global_Car.location = {};
   Global_Car.vib = new Map();
+  Global_Car.alternativeRoutes = [];
+
   /*var Global_TrafficUpdate = new TrafficUpdate();
   var Global_V2VMessage = new V2VMessage();*/
   $scope.carDetails = Global_Car;
@@ -357,7 +359,11 @@ angular.module('starter.controllers', [])
                debugger;
                ApiService.getDirection($scope.fromLocationLatLong, $scope.toLocationLatLong).then(function(resp){
                   debugger;
-                  $scope.directionInstruction = resp.data.paths[0].instructions;
+                  $scope.directionInstruction = resp.data.paths;
+                  angular.forEach($scope.directionInstruction, function(val){
+                      Global_Car.alternativeRoutes.push(val.instructions);
+                  })
+                  Global_Car.currentRoute = Global_Car.alternativeRoutes[0].instructions;
                });  
 
 

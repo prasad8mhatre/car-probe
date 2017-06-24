@@ -60,4 +60,5 @@ angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', '
 .constant('locationIQ', 'e9fbe60b2244e1a62302')
 .constant('pubnub_pub_key', 'pub-c-4f947445-11f6-4a97-8f14-ee302a228bdc')
 .constant('pubnub_sub_key', 'sub-c-4287ea34-57c7-11e7-b679-0619f8945a4f')
-.constant('graphhopper', '1ca93964-3020-4d6c-99d8-457e015855b2');
+.constant('graphhopper', '2a24e316-61ea-4850-b231-4ef2fe25d229');
+//.constant('graphhopper', '1ca93964-3020-4d6c-99d8-457e015855b2');//

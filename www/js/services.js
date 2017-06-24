@@ -18,7 +18,7 @@ angular.module('starter.services', [])
       getDirection : function(fromLocation, toLocation){
         return $http({
             method: 'GET',
-            url: 'https://graphhopper.com/api/1/route?point='+ fromLocation.lat +'%2C'+ fromLocation.long +'&point='+ toLocation.lat + '%2C' + toLocation.long + '&vehicle=car&locale=en&key=' + graphhopper
+            url: 'https://graphhopper.com/api/1/route?point='+ fromLocation.lat +'%2C'+ fromLocation.long +'&point='+ toLocation.lat + '%2C' + toLocation.long + '&type=json&locale=en-US&vehicle=car&weighting=fastest&elevation=true&ch.disable=true&algorithm=alternative_route&alternative_route.max_paths=10&use_miles=false&layer=Omniscale&key=' + graphhopper 
         });
       }
     }
