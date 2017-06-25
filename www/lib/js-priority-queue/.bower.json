@@ -1,0 +1,25 @@
+{
+  "name": "js-priority-queue",
+  "version": "0.1.5",
+  "main": "priority-queue.js",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "coffee",
+    "spec",
+    "spec-coffee",
+    "Gruntfile.js",
+    "package.json"
+  ],
+  "homepage": "https://github.com/adamhooper/js-priority-queue",
+  "_release": "0.1.5",
+  "_resolution": {
+    "type": "version",
+    "tag": "v0.1.5",
+    "commit": "56be07ff717f7bce207f921a733ac264215fa387"
+  },
+  "_source": "https://github.com/adamhooper/js-priority-queue.git",
+  "_target": "^0.1.5",
+  "_originalSource": "js-priority-queue",
+  "_direct": true
+}

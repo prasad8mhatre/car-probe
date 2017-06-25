@@ -8,6 +8,7 @@
     "pubnub": "^4.10.0",
     "pubnub-angular": "^4.0.2",
     "ngCordova": "^0.1.27-alpha",
-    "ion-google-place": "^0.0.1"
+    "ion-google-place": "^0.0.1",
+    "js-priority-queue": "^0.1.5"
   }
 }

@@ -29,7 +29,7 @@
         </div>
 
          <div class="card">
-            <div class="item item-text-wrap" ng-repeat="instruction in carDetails.currentRoute">
+            <div class="item item-text-wrap" ng-repeat="instruction in carDetails.currentRoute.instructions">
               <div class="row">
                   <div class="col col-75">{{$index+1}}. {{instruction.text}}<h6>{{instruction.street_name}}</h6></div>
                   <div class="col col-25">{{instruction.distance}} m <h6>{{instruction.time}} s</h6></div>

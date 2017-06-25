@@ -20,6 +20,9 @@ angular.module('starter.controllers', [])
   $scope.carDetails.location = {};
   $scope.carDetails.vib = new Map();
   $scope.onload = true;
+  
+  var compareJourneyRemaniningTime = function(a, b) { return a.journeyRemaniningTime - b.journeyRemaniningTime; };
+  $scope.nearbyVehicleMatrix = new PriorityQueue({ comparator: compareJourneyRemaniningTime });
 
   /*-----------------------
   Models
@@ -209,7 +212,7 @@ angular.module('starter.controllers', [])
       $scope.$apply(function () {
           // add message to the messages list
           console.log(envelope.message);
-          var message = envelope.message;
+          var msg = envelope.message;
           
 
           if(envelope.channel != $scope.subscribedChannels.global_channel && Global_Car.uuid != envelope.message.uuid){
@@ -217,28 +220,78 @@ angular.module('starter.controllers', [])
             /*1. handle cluster head selection - clustering algorithm
               find lowest speed vehicle
             */
-            var lowestSpeed = {};
-            lowestSpeed.speed = Number.MAX_SAFE_INTEGER;            
-            lowestSpeed.vehicle = new Car();
-            for (var [key, value] of Global_Car.vib.entries()) {
-              console.log(key + ' = ' + value);
-              if(value.speed < lowestSpeed.speed ){
-                lowestSpeed.speed = value.speed;
-                lowestSpeed.vehicle = value;
+            //msg code == 102
+            if(msg.code == 102 && Global_Car.status == 'Cluster Member'){
+                //TODO: Need to add actual parameters
+                var reRoutingInitAckMsg = {};
+                reRoutingInitAckMsg.allPath = Global_Car.alternativeRoutes;
+                reRoutingInitAckMsg.currentPath = Global_Car.currentRoute;
+                reRoutingInitAckMsg.journeyRemaniningTime = Global_Car.currentRoute.time;
+                reRoutingInitAckMsg.currentPathInstructionIndex = Global_Car.currentPathInstructionIndex;
+                reRoutingInitAckMsg.isCar = true;
+                reRoutingInitAckMsg.code  = 103;
+                reRoutingInitAckMsg.carUUId = Global_Car.uuid;
+                reRoutingInitAckMsg.roadId = Global_Car.roadId;
+                $scope.publishMessage(reRoutingInitAckMsg, $scope.subscribedChannels.local_channels);
+                console.log("Acknowledge re-routing init to Cluster head");
+
+            }else if(msg.code == 103 && Global_Car.status == 'Cluster Head'){
+                if(Global_Car.vib.length == $scope.nearbyVehicleMatrix.length){
+                  console.log("Starting assignment of new route to vehicles"); 
+                  //sort all nearbyVehicle
+                  //route assignment logic
+                  //publish route assignment <carUUId, route> on road_id with msg code = 104
+                }else{
+                  $scope.nearbyVehicleMatrix.queue(msg);
+                  console.log("Collected Acknowledge from other vehicle for re-routing");
+                }
+            }else if(msg.code == 104){
+              if(msg.routes.get(Global_Car.uuid) != undefined){
+                //assign that route -- route assigned
+                Global_Car.currentRoute = msg.routes.get(Global_Car.uuid);
+                console.log("New Route assigned");
+              }
+
+            }else{
+              var lowestSpeed = {};
+              lowestSpeed.speed = Number.MAX_SAFE_INTEGER;            
+              lowestSpeed.vehicle = new Car();
+              for (var [key, value] of Global_Car.vib.entries()) {
+                console.log(key + ' = ' + value);
+                if(value.speed < lowestSpeed.speed ){
+                  lowestSpeed.speed = value.speed;
+                  lowestSpeed.vehicle = value;
+                }
+              }
+
+              //notify other vehicles
+              if(lowestSpeed.vehicle.uuid == Global_Car.uuid){
+                Global_Car.status = 'Cluster Head';
+                //pubnub notify
+                $scope.publishMessage(Global_Car, $scope.subscribedChannels.local_channels);
               }
             }
-
-            //notify other vehicles
-            if(lowestSpeed.vehicle.uuid == Global_Car.uuid){
-              Global_Car.status = 'Cluster Head';
-              //pubnub notify
-              $scope.publishMessage(Global_Car, $scope.subscribedChannels.local_channels);
-            }
-
-          }else if(!message.isCar){
+          }else if(!msg.isCar){
               //handle traffic notification
               // 2. handle rerouting algorithm  
-          } 
+              /*msg.code = 100;
+                msg.text = "Congestion at Road Id:" + road.roadId;
+                msg.roadId  = road.roadId;
+                msg.isCar = false;
+                */
+                if(Global_Car.status == 'Cluster Head' && msg.code == 100){
+                  //HACK: QuickFix: Need To Fix: assume that congestion has occured and re-routing algorithm needs to start
+                  //1. check whether roadId falls in current path route id's
+                  //2. if yes then if(cluster head)  then 
+                  console.log(msg.text);
+                  var reRoutingInitMsg = {};
+                  reRoutingInitMsg.code = 102;
+                  reRoutingInitMsg.text = msg.text;
+                  reRoutingInitMsg.roadId = msg.roadId;
+                  $scope.publishMessage(reRoutingInitMsg, $scope.subscribedChannels.local_channels);
+                  console.log("ReRouting algorithm Init.");
+                }
+           } 
       });
   });
 
@@ -361,9 +414,14 @@ angular.module('starter.controllers', [])
                   debugger;
                   $scope.directionInstruction = resp.data.paths;
                   angular.forEach($scope.directionInstruction, function(val){
-                      Global_Car.alternativeRoutes.push(val.instructions);
+                      var route = {};
+                      route.time = val.time;
+                      route.distance = val.distance;
+                      route.instructions = val.instructions;
+                      Global_Car.alternativeRoutes.push(route);
                   })
-                  Global_Car.currentRoute = Global_Car.alternativeRoutes[0].instructions;
+                  Global_Car.currentRoute = Global_Car.alternativeRoutes[0];
+                  Global_Car.currentPathInstructionIndex = 0;
                });  
 
 
