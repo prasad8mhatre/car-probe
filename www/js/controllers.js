@@ -243,7 +243,7 @@ angular.module('starter.controllers', [])
                   //publish route assignment <carUUId, route> on road_id with msg code = 104
                 }else{
                   $scope.nearbyVehicleMatrix.queue(msg);
-                  console.log("Collected Acknowledge from other vehicle for re-routing");
+                  console.log("Collected Acknowledge from " + msg.carUUId + " vehicle for re-routing");
                 }
             }else if(msg.code == 104){
               if(msg.routes.get(Global_Car.uuid) != undefined){
