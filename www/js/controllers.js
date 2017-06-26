@@ -215,11 +215,12 @@ angular.module('starter.controllers', [])
           var msg = envelope.message;
           
 
-          if(envelope.channel != $scope.subscribedChannels.global_channel && Global_Car.uuid != envelope.message.uuid){
+          if(envelope.channel != $scope.subscribedChannels.global_channel && Global_Car.uuid != msg.uuid){
            
             /*1. handle cluster head selection - clustering algorithm
               find lowest speed vehicle
             */
+
             //msg code == 102
             if(msg.code == 102 && Global_Car.status == 'Cluster Member'){
                 //TODO: Need to add actual parameters
@@ -230,7 +231,7 @@ angular.module('starter.controllers', [])
                 reRoutingInitAckMsg.currentPathInstructionIndex = Global_Car.currentPathInstructionIndex;
                 reRoutingInitAckMsg.isCar = true;
                 reRoutingInitAckMsg.code  = 103;
-                reRoutingInitAckMsg.carUUId = Global_Car.uuid;
+                reRoutingInitAckMsg.uuid = Global_Car.uuid;
                 reRoutingInitAckMsg.roadId = Global_Car.roadId;
                 $scope.publishMessage(reRoutingInitAckMsg, $scope.subscribedChannels.local_channels);
                 console.log("Acknowledge re-routing init to Cluster head");
@@ -241,6 +242,16 @@ angular.module('starter.controllers', [])
                   //sort all nearbyVehicle
                   //route assignment logic
                   //publish route assignment <carUUId, route> on road_id with msg code = 104
+                  var assignedRoutes = getAssignedRoute();
+                  var reRoutingAssignedRouteMsg = {};
+                  reRoutingAssignedRouteMsg.code = 104;
+                  reRoutingAssignedRouteMsg.isCar = true;
+                  reRoutingAssignedRouteMsg.roadId = Global_Car.roadId;
+                  reRoutingAssignedRouteMsg.routes =  assignedRoutes;
+                  reRoutingAssignedRouteMsg.uuid = Global_Car.uuid;
+                  $scope.publishMessage(reRoutingInitAckMsg, $scope.subscribedChannels.local_channels);
+                  console.log("Re-Routing Assigned Routes message sent");
+
                 }else{
                   $scope.nearbyVehicleMatrix.queue(msg);
                   console.log("Collected Acknowledge from " + msg.carUUId + " vehicle for re-routing");
@@ -343,6 +354,67 @@ angular.module('starter.controllers', [])
     );
   }
 
+  $scope.getAssignedRoute = function(){
+    var assignedRoutes = new Map();
+    var vehicleCount = 0;
+    var processedVehicle = new Map();
+    while( $scope.nearbyVehicleMatrix.length > 0){
+      var vehicle = $scope.nearbyVehicleMatrix.dequeue();
+      //processedVehicle.set(vehicle.uuid, vehicle);
+      var route = {};
+      debugger;
+
+      if(vehicleCount == 0 && vehicle.allPath.length > 1){
+        debugger;
+        route = vehicle.allPath[1];
+        var currentVehicle = angular.copy(vehicle);
+        currentVehicle.currentRoute = $scope.uniqueList(route);
+        processedVehicle.set(vehicle.uuid, vehicle);
+      }else{
+        //var allPath = vehicle.allPath;
+        debugger;
+        var currentVehicle = angular.copy(vehicle);
+        var previousFootPrints = [];
+        //dbksp
+        var compareNumbers = function(a, b) { return a.weight - b.weight; };
+        var weightedFootprint = new PriorityQueue({ comparator: compareNumbers });
+        var uniquePathList = [];
+        //unique path list
+        angular.forEach(vehicle.allPath, function(val){
+          uniquePathList.add($scope.uniqueList(val.instructions));
+        });
+        debugger;
+        for (var [key, value] of processedVehicle.entries()) {
+          previousFootPrints.concat($scope.uniqueList(key.currentRoute));
+        }
+        debugger;
+
+        //calculating footprints weights
+        angular.forEach(uniquePathList, function(uniquePathVal, uniquePathKey){
+          var footPrintWeight = {};
+          footPrintWeight.weight = 0;
+          footPrintWeight.index = uniquePathKey;
+          angular.forEach(uniquePathVal, function(pathElementVal, pathElementKey){
+            angular.forEach(previousFootPrints, function(previousFPVal, previousFPkey){
+              if(pathElementVal == previousFPVal){
+                footPrintWeight.weight++;
+              }
+            });
+          });
+          weightedFootprint.queue(footPrintWeight);
+        });
+        debugger;
+        //getting lowest footprint weight route
+        route = vehicle.allPath[weightedFootprint.dequeue().index];
+
+      }
+
+      //assigned a new calculated route to vehicle
+      debugger
+      assignedRoutes.set(vehicle.uuid, route);
+    } 
+    return assignedRoutes;
+  }
   
 
   $scope.publishMessage = function(data, channel){
@@ -436,6 +508,19 @@ angular.module('starter.controllers', [])
       });
 
   }
+
+
+  $scope.uniqueList = function(instructions){
+    var uniqueList = new Set();
+    angular.forEach(instructions, function(val){
+      if(val.street_name != ""){
+        uniqueList.add(val.street_name);  
+      }
+    });
+    debugger;
+    return uniqueList;
+  }
+
 
  
   //tear down - unsubscribe
