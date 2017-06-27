@@ -7,7 +7,7 @@
 // 'starter.controllers' is found in controllers.js
 angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', 'pubnub.angular.service', 'ngCordova', 'ion-google-place'])
 
-.run(function($ionicPlatform) {
+.run(function($ionicPlatform, LocationService) {
   $ionicPlatform.ready(function() {
     // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
     // for form inputs)
@@ -20,6 +20,7 @@ angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', '
       // org.apache.cordova.statusbar required
       StatusBar.styleDefault();
     }
+
   });
 })
 
@@ -41,6 +42,16 @@ angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', '
   })
 
   // Each tab has its own nav history stack:
+  .state('tab.dash1', {
+    url: '/dash1',
+    views: {
+      'tab-dash1': {
+        templateUrl: 'templates/tab-dash1.html',
+        controller: 'Dash1Ctrl'
+      }
+    }
+  })
+
 
   .state('tab.dash', {
     url: '/dash',
@@ -52,8 +63,10 @@ angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', '
     }
   })
 
+  
+
   // if none of the above states are matched, use this as the fallback
-  $urlRouterProvider.otherwise('/tab/dash');
+  $urlRouterProvider.otherwise('/tab/dash1');
 
 })
 

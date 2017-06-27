@@ -23,4 +23,14 @@ angular.module('starter.services', [])
       }
     }
     
-});
+})
+
+.service('LocationService', ['$cordovaGeolocation', 'ApiService', '$ionicPlatform', '$q', function($cordovaGeolocation, ApiService, $ionicPlatform, $q){
+   this.currentLocation = {};
+   this.setCurrLocation = function(loc){this.currentLocation = loc};
+   this.getCurrLocation = function(){
+     return this.currentLocation;
+   };
+}]);
+
+

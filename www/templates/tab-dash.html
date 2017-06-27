@@ -1,6 +1,6 @@
 <ion-view view-title="Dashboard">
     <ion-content class="padding">
-        <div class="card">
+       <div class="card">
             <div class="item item-text-wrap">
                Vehicles - {{carDetails.status}}
                <h6>{{carDetails.uuid}}</h6>
@@ -9,6 +9,12 @@
               </h5>
               <h5>
                   Longitude: {{carDetails.location.long}}
+              </h5>
+              <h5>
+                  Speed: {{carDetails.speed}}
+              </h5>
+              <h5>
+                channels {{getAllChannels()}}
               </h5>
             </div>
         </div>
@@ -43,6 +49,5 @@
               
             </div>
         </div>
-      
     </ion-content>
 </ion-view>
