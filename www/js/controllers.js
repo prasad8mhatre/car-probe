@@ -76,13 +76,10 @@ angular.module('starter.controllers', [])
   Global_Car.status = "Cluster Head";
   $scope.subscribedChannels.local_channels.push(currlocation.channel);
 
-  /*$interval(function () {
-        if(Global_Car.status == "Cluster Head"){
-          Global_Car.status = "Cluster Member";
-        }else{
-          Global_Car.status = "Cluster Head"
-        }
-  }, 5000); */
+ // send location update after 20 sec
+  $interval(function () {
+    $scope.getLocation();
+  }, 20000); 
 
   //pubnub
 
@@ -95,32 +92,55 @@ angular.module('starter.controllers', [])
     subscribeKey: pubnub_sub_key
   });
 
-
-
-
- 
-
   /* ------------------- 
   End Global Object
   ----------------------*/
   debugger;
-  //location tracking
- 
-    /*var posOptions = {timeout: 10000, enableHighAccuracy: false};
+
+  $scope.getLocation = function(){
+    var posOptions = {timeout: 10000, enableHighAccuracy: false};
     $cordovaGeolocation
       .getCurrentPosition(posOptions)
       .then(function (position) {
         debugger;
-        //$scope.subscribeToChannel($scope.getAllChannels());
-        console.log("subscribered to channel:" + $scope.subscribedChannels.global_channel);
-        $scope.postLocationActivity(position);
-        
-        $scope.onload = false;
+         Global_Car.location.lat  = position.coords.latitude;
+         Global_Car.location.long = position.coords.longitude;
+         Global_Car.speed = $scope.randomIntFromInterval(5,70);
+
+        //find road id from lat long and set subscriber to channel
+        ApiService.getRoadId(Global_Car.location.lat, Global_Car.location.long).then(function(resp){
+         
+          if(resp.data.osm_type == 'way'){
+            
+
+            if( $scope.subscribedChannels.local_channels.length != 0){
+              Pubnub.unsubscribe({
+                channels: [$scope.subscribedChannels.local_channels]
+              });
+            }
+
+            $scope.subscribedChannels.local_channels = [];
+            $scope.subscribedChannels.local_channels.push("local_channel-" + resp.data.osm_id);
+            Global_Car.edgeId = resp.data.osm_id;
+            debugger;
+            $scope.setChannelState($scope.subscribedChannels.local_channels);
+            $scope.subscribeToChannel($scope.subscribedChannels.local_channels);
+
+            $scope.logSubscribedChannels();
+            console.log("subscribered channel: " + $scope.subscribedChannels.local_channels);
+           
+          }
+        });
+       
       }, function(err) {
         // error
         console.log("Error while getting Current Position");
         $window.location.reload(true);
       });
+  }
+  //location tracking
+ 
+    /*
 */
 
     /*var watchOptions = {
@@ -249,10 +269,12 @@ angular.module('starter.controllers', [])
             /*1. handle cluster head selection - clustering algorithm
               find lowest speed vehicle
             */
+            debugger;
 
             //msg code == 102
             if(msg.code == 102 && Global_Car.status == 'Cluster Member'){
                 //TODO: Need to add actual parameters
+                debugger;
                 var reRoutingInitAckMsg = {};
                 reRoutingInitAckMsg.allPath = Global_Car.alternativeRoutes;
                 reRoutingInitAckMsg.currentPath = Global_Car.currentRoute;
@@ -271,6 +293,7 @@ angular.module('starter.controllers', [])
                   //sort all nearbyVehicle
                   //route assignment logic
                   //publish route assignment <carUUId, route> on road_id with msg code = 104
+                  debugger;
                   var assignedRoutes = getAssignedRoute();
                   var reRoutingAssignedRouteMsg = {};
                   reRoutingAssignedRouteMsg.code = 104;
@@ -282,17 +305,20 @@ angular.module('starter.controllers', [])
                   console.log("Re-Routing Assigned Routes message sent");
 
                 }else{
+                  debugger;
                   $scope.nearbyVehicleMatrix.queue(msg);
                   console.log("Collected Acknowledge from " + msg.carUUId + " vehicle for re-routing");
                 }
             }else if(msg.code == 104){
               if(msg.routes.get(Global_Car.uuid) != undefined){
                 //assign that route -- route assigned
+                debugger;
                 Global_Car.currentRoute = msg.routes.get(Global_Car.uuid);
                 console.log("New Route assigned");
               }
 
             }else{
+              debugger;
               /*var lowestSpeed = {};
               lowestSpeed.speed = Number.MAX_SAFE_INTEGER;            
               lowestSpeed.vehicle = new Car();
@@ -320,7 +346,9 @@ angular.module('starter.controllers', [])
                 msg.roadId  = road.roadId;
                 msg.isCar = false;
                 */
+                debugger;
                 if(Global_Car.status == 'Cluster Head' && msg.code == 100){
+                  debugger;
                   //HACK: QuickFix: Need To Fix: assume that congestion has occured and re-routing algorithm needs to start
                   //1. check whether roadId falls in current path route id's
                   //2. if yes then if(cluster head)  then 
@@ -343,11 +371,13 @@ angular.module('starter.controllers', [])
       if(pnEvent.action != 'state-change'){
         debugger;
         $scope.hereNow();
+        if(pnEvent.action == 'join'){
+          $scope.sendTrafficUpdate();
+        }
       }
       
   });
 
-  debugger;
   $rootScope.$on(Pubnub.getEventNameFor('subscribe', 'presence', 'status'), function (ngEvent, status, response) {
       debugger;
       if (status.category == 'PNConnectedCategory'){
@@ -366,10 +396,8 @@ angular.module('starter.controllers', [])
   });
 
 
-  debugger;
   //here now
   $scope.hereNow = function(){
-    debugger;
     Pubnub.hereNow(
         {
             channels: [$scope.subscribedChannels.local_channels], 
@@ -378,7 +406,6 @@ angular.module('starter.controllers', [])
         },
         function (status, response) {
             // handle status, response
-            debugger;
             if(!status.error){
               console.log("online users: " + response.totalOccupancy );
               if(!angular.isUndefined(response.channels[$scope.subscribedChannels.local_channels])){
@@ -387,32 +414,31 @@ angular.module('starter.controllers', [])
                   lowestSpeed.vehicleUUID = '';
                   
                  angular.forEach(response.channels[$scope.subscribedChannels.local_channels].occupants, function(data){
-                    var vehicle = data.state.car_state;
-                    if(vehicle.uuid != Global_Car.uuid){
-                      Global_Car.vib.set(vehicle.uuid, vehicle);
+                    debugger;
+                    if(!angular.isUndefined(data.state)){
+                      var vehicle = data.state.car_state;
+                      if(vehicle.uuid != Global_Car.uuid){
+                        Global_Car.vib.set(vehicle.uuid, vehicle);
+                      }
+                      if(vehicle.speed < lowestSpeed.speed ){
+                        lowestSpeed.speed = vehicle.speed;
+                        lowestSpeed.vehicleUUID = vehicle.uuid;
+                      }
                     }
-                    if(vehicle.speed < lowestSpeed.speed ){
-                      lowestSpeed.speed = vehicle.speed;
-                      lowestSpeed.vehicleUUID = vehicle.uuid;
-                    }  
                  });
                  //updating state
                  if(lowestSpeed.vehicleUUID == Global_Car.uuid){
                   Global_Car.status = "Cluster Head";
                  }else{
-                  debugger;
                   Global_Car.status = "Cluster Member";
-                   $scope.$apply(); 
                  }
+                 $scope.$apply(); 
 
               }
             }
-            debugger;
         }
     );
-    debugger;
   }
-  debugger;
 
   $scope.getAssignedRoute = function(){
     var assignedRoutes = new Map();
@@ -482,7 +508,7 @@ angular.module('starter.controllers', [])
           channel: [channel],
           message: data 
         }, function(status, response){
-          console.log(response);
+          console.log("Message published:" + JSON.stringify(data) + " ,channel:" + channel + " " + JSON.stringify(response));
       });
     }
 
@@ -494,6 +520,7 @@ angular.module('starter.controllers', [])
                               Global_Car.speed, Global_Car.heading, Global_Car.edgeId, Global_Car.status, true);
     
     trafficUpdate.edgeId = Global_Car.edgeId; // Done
+    delete trafficUpdate['location'];
     $scope.publishMessage(trafficUpdate, $scope.subscribedChannels.global_channel);
   }
     
@@ -585,9 +612,9 @@ angular.module('starter.controllers', [])
   debugger;
 
 
-  $scope.publishMessagtoPeer = function(){
+ /* $scope.publishMessagtoPeer = function(){
     $scope.publishMessage("Hi", $scope.subscribedChannels.local_channels)
-  }
+  }*/
  
   //tear down - unsubscribe
   window.addEventListener("beforeunload", function (e) {
