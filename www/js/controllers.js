@@ -95,14 +95,12 @@ angular.module('starter.controllers', [])
   /* ------------------- 
   End Global Object
   ----------------------*/
-  debugger;
 
   $scope.getLocation = function(){
     var posOptions = {timeout: 10000, enableHighAccuracy: false};
     $cordovaGeolocation
       .getCurrentPosition(posOptions)
       .then(function (position) {
-        debugger;
          Global_Car.location.lat  = position.coords.latitude;
          Global_Car.location.long = position.coords.longitude;
          Global_Car.speed = $scope.randomIntFromInterval(5,70);
@@ -122,7 +120,6 @@ angular.module('starter.controllers', [])
             $scope.subscribedChannels.local_channels = [];
             $scope.subscribedChannels.local_channels.push("local_channel-" + resp.data.osm_id);
             Global_Car.edgeId = resp.data.osm_id;
-            debugger;
             $scope.setChannelState($scope.subscribedChannels.local_channels);
             $scope.subscribeToChannel($scope.subscribedChannels.local_channels);
 
@@ -255,7 +252,6 @@ angular.module('starter.controllers', [])
   $scope.subscribeToChannel($scope.subscribedChannels.global_channel);
   $scope.subscribeToChannel($scope.subscribedChannels.local_channels);
 
-  debugger;
   $rootScope.$on(Pubnub.getMessageEventNameFor($scope.getAllChannels()), function (ngEvent, envelope) {
       $scope.$apply(function () {
           // add message to the messages list
@@ -364,7 +360,6 @@ angular.module('starter.controllers', [])
       });
   });
 
-  debugger;
   $rootScope.$on(Pubnub.getPresenceEventNameFor($scope.subscribedChannels.local_channels), function (ngEvent, pnEvent) {
       // apply presence event (join|leave) on users list
       console.log(pnEvent);
@@ -427,13 +422,14 @@ angular.module('starter.controllers', [])
                     }
                  });
                  //updating state
-                 if(lowestSpeed.vehicleUUID == Global_Car.uuid){
-                  Global_Car.status = "Cluster Head";
-                 }else{
-                  Global_Car.status = "Cluster Member";
+                 if(lowestSpeed.vehicleUUID != ""){
+                  if(lowestSpeed.vehicleUUID == Global_Car.uuid){
+                    Global_Car.status = "Cluster Head";
+                   }else{
+                    Global_Car.status = "Cluster Member";
+                   }
+                   $scope.$apply(); 
                  }
-                 $scope.$apply(); 
-
               }
             }
         }
@@ -609,7 +605,6 @@ angular.module('starter.controllers', [])
   }
 
   //$scope.subscribeToChannel($scope.global_local_channel);
-  debugger;
 
 
  /* $scope.publishMessagtoPeer = function(){
