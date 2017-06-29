@@ -1,7 +1,7 @@
 
 angular.module('starter.controllers', [])
 
-.controller('DashCtrl', function($scope, Pubnub, $rootScope, $cordovaGeolocation, $ionicPlatform, $window, locationIQ, pubnub_pub_key, pubnub_sub_key, ApiService, LocationService, $interval) {
+.controller('DashCtrl', function($scope, Pubnub, $rootScope, $cordovaGeolocation, $ionicPlatform, $window, locationIQ, pubnub_pub_key, pubnub_sub_key, ApiService, LocationService, $interval, $ionicLoading) {
   $ionicPlatform.ready(function() {
   
   console.log("Dash Board controller started");
@@ -13,6 +13,7 @@ angular.module('starter.controllers', [])
   $scope.subscribedChannels.local_channels = [];
   $scope.fromLocation = '';
   $scope.toLocation = '';
+  $scope.navigationStarted = false;
   
 
   //$scope.carDetails.follow = [];
@@ -252,7 +253,40 @@ angular.module('starter.controllers', [])
   $scope.subscribeToChannel($scope.subscribedChannels.global_channel);
   $scope.subscribeToChannel($scope.subscribedChannels.local_channels);
 
-  $rootScope.$on(Pubnub.getMessageEventNameFor($scope.getAllChannels()), function (ngEvent, envelope) {
+  $rootScope.$on(Pubnub.getMessageEventNameFor($scope.subscribedChannels.global_channel), function (ngEvent, envelope) {
+      $scope.$apply(function () {
+          // add message to the messages list
+          console.log(envelope.message);
+          var msg = envelope.message;
+          
+
+          if(!msg.isCar){
+              //handle traffic notification
+              // 2. handle rerouting algorithm  
+              /*msg.code = 100;
+                msg.text = "Congestion at Road Id:" + road.roadId;
+                msg.roadId  = road.roadId;
+                msg.isCar = false;
+                */
+                if(Global_Car.status == 'Cluster Head' && msg.code == 100 && $scope.navigationStarted){
+                  debugger;
+                  //HACK: QuickFix: Need To Fix: assume that congestion has occured and re-routing algorithm needs to start
+                  //1. check whether roadId falls in current path route id's
+                  //2. if yes then if(cluster head)  then 
+                  console.log(msg.text);
+                  var reRoutingInitMsg = {};
+                  reRoutingInitMsg.code = 102;
+                  reRoutingInitMsg.text = msg.text;
+                  reRoutingInitMsg.roadId = msg.roadId;
+                  $scope.publishMessage(reRoutingInitMsg, $scope.subscribedChannels.local_channels);
+                  $ionicLoading.show({ template: 'Congestion at current Route, ReRouting algorithm Initiated' , noBackdrop: true, duration: 2000 });
+                  console.log("Congestion at current Route, ReRouting algorithm Init.");
+                }
+           } 
+      });
+  });
+
+  $rootScope.$on(Pubnub.getMessageEventNameFor($scope.subscribedChannels.local_channels), function (ngEvent, envelope) {
       $scope.$apply(function () {
           // add message to the messages list
           console.log(envelope.message);
@@ -260,7 +294,7 @@ angular.module('starter.controllers', [])
           debugger;
           
 
-          if(envelope.channel != $scope.subscribedChannels.global_channel && Global_Car.uuid != msg.uuid){
+          if(Global_Car.uuid != msg.uuid){
            
             /*1. handle cluster head selection - clustering algorithm
               find lowest speed vehicle
@@ -268,7 +302,7 @@ angular.module('starter.controllers', [])
             debugger;
 
             //msg code == 102
-            if(msg.code == 102 && Global_Car.status == 'Cluster Member'){
+            if(msg.code == 102 && Global_Car.status == 'Cluster Member' && $scope.navigationStarted){
                 //TODO: Need to add actual parameters
                 debugger;
                 var reRoutingInitAckMsg = {};
@@ -281,11 +315,13 @@ angular.module('starter.controllers', [])
                 reRoutingInitAckMsg.uuid = Global_Car.uuid;
                 reRoutingInitAckMsg.roadId = Global_Car.roadId;
                 $scope.publishMessage(reRoutingInitAckMsg, $scope.subscribedChannels.local_channels);
+                $ionicLoading.show({ template: 'Acknowledge re-routing init to Cluster head' , noBackdrop: true, duration: 2000 });  
                 console.log("Acknowledge re-routing init to Cluster head");
 
-            }else if(msg.code == 103 && Global_Car.status == 'Cluster Head'){
+            }else if(msg.code == 103 && Global_Car.status == 'Cluster Head' && $scope.navigationStarted){
                 if(Global_Car.vib.length == $scope.nearbyVehicleMatrix.length){
                   console.log("Starting assignment of new route to vehicles"); 
+                  $ionicLoading.show({ template: 'Starting assignment of new route to vehicles' , noBackdrop: true, duration: 2000 });  
                   //sort all nearbyVehicle
                   //route assignment logic
                   //publish route assignment <carUUId, route> on road_id with msg code = 104
@@ -298,18 +334,21 @@ angular.module('starter.controllers', [])
                   reRoutingAssignedRouteMsg.routes =  assignedRoutes;
                   reRoutingAssignedRouteMsg.uuid = Global_Car.uuid;
                   $scope.publishMessage(reRoutingInitAckMsg, $scope.subscribedChannels.local_channels);
+                  $ionicLoading.show({ template: 'Re-Routing Assigned Routes message sent' , noBackdrop: true, duration: 2000 });  
                   console.log("Re-Routing Assigned Routes message sent");
 
                 }else{
                   debugger;
                   $scope.nearbyVehicleMatrix.queue(msg);
+                  $ionicLoading.show({ template: 'Collected Acknowledge from ' + msg.carUUId + ' vehicle for re-routing' , noBackdrop: true, duration: 2000 });  
                   console.log("Collected Acknowledge from " + msg.carUUId + " vehicle for re-routing");
                 }
-            }else if(msg.code == 104){
+            }else if(msg.code == 104 && $scope.navigationStarted){
               if(msg.routes.get(Global_Car.uuid) != undefined){
                 //assign that route -- route assigned
                 debugger;
                 Global_Car.currentRoute = msg.routes.get(Global_Car.uuid);
+                $ionicLoading.show({ template: 'New Route assigned' , noBackdrop: true, duration: 2000 });  
                 console.log("New Route assigned");
               }
 
@@ -334,39 +373,17 @@ angular.module('starter.controllers', [])
               }*/
               debugger;
             }
-          }else if(!msg.isCar){
-              //handle traffic notification
-              // 2. handle rerouting algorithm  
-              /*msg.code = 100;
-                msg.text = "Congestion at Road Id:" + road.roadId;
-                msg.roadId  = road.roadId;
-                msg.isCar = false;
-                */
-                debugger;
-                if(Global_Car.status == 'Cluster Head' && msg.code == 100){
-                  debugger;
-                  //HACK: QuickFix: Need To Fix: assume that congestion has occured and re-routing algorithm needs to start
-                  //1. check whether roadId falls in current path route id's
-                  //2. if yes then if(cluster head)  then 
-                  console.log(msg.text);
-                  var reRoutingInitMsg = {};
-                  reRoutingInitMsg.code = 102;
-                  reRoutingInitMsg.text = msg.text;
-                  reRoutingInitMsg.roadId = msg.roadId;
-                  $scope.publishMessage(reRoutingInitMsg, $scope.subscribedChannels.local_channels);
-                  console.log("ReRouting algorithm Init.");
-                }
-           } 
+          } 
       });
   });
+
 
   $rootScope.$on(Pubnub.getPresenceEventNameFor($scope.subscribedChannels.local_channels), function (ngEvent, pnEvent) {
       // apply presence event (join|leave) on users list
       console.log(pnEvent);
       if(pnEvent.action != 'state-change'){
-        debugger;
         $scope.hereNow();
-        if(pnEvent.action == 'join'){
+        if(pnEvent.action == 'join' && pnEvent.uuid == Global_Car.uuid){
           $scope.sendTrafficUpdate();
         }
       }
@@ -409,7 +426,6 @@ angular.module('starter.controllers', [])
                   lowestSpeed.vehicleUUID = '';
                   
                  angular.forEach(response.channels[$scope.subscribedChannels.local_channels].occupants, function(data){
-                    debugger;
                     if(!angular.isUndefined(data.state)){
                       var vehicle = data.state.car_state;
                       if(vehicle.uuid != Global_Car.uuid){
@@ -425,8 +441,10 @@ angular.module('starter.controllers', [])
                  if(lowestSpeed.vehicleUUID != ""){
                   if(lowestSpeed.vehicleUUID == Global_Car.uuid){
                     Global_Car.status = "Cluster Head";
+                    $ionicLoading.show({ template: Global_Car.uuid + ' Elected as Cluster Head', noBackdrop: true, duration: 2000 });
                    }else{
                     Global_Car.status = "Cluster Member";
+                    $ionicLoading.show({ template: Global_Car.uuid + ' Elected as Cluster Member', noBackdrop: true, duration: 2000 });
                    }
                    $scope.$apply(); 
                  }
@@ -518,6 +536,7 @@ angular.module('starter.controllers', [])
     trafficUpdate.edgeId = Global_Car.edgeId; // Done
     delete trafficUpdate['location'];
     $scope.publishMessage(trafficUpdate, $scope.subscribedChannels.global_channel);
+    $ionicLoading.show({ template: 'Sent traffic update' , noBackdrop: true, duration: 2000 });  
   }
     
   
@@ -545,6 +564,11 @@ angular.module('starter.controllers', [])
   $scope.navigate = function(fromLocation, toLocation){
      var geocoder = new google.maps.Geocoder();
      debugger;
+     if($scope.navigationStarted){
+       $ionicLoading.show({ template: 'Stopping Current Navigation!' , noBackdrop: true, duration: 2000 }); 
+       $scope.navigationStarted = false;
+     }
+   
 
      //from location
      geocoder.geocode({'address': fromLocation.formatted_address + ""}, function(results, status) {
@@ -577,16 +601,20 @@ angular.module('starter.controllers', [])
                   })
                   Global_Car.currentRoute = Global_Car.alternativeRoutes[0];
                   Global_Car.currentPathInstructionIndex = 0;
+                  $scope.navigationStarted = true;
+                  $ionicLoading.show({ template: 'Navigating through fastest route!' , noBackdrop: true, duration: 2000 });
                });  
 
 
 
             } else {
               alert('Geocode was not successful for the following reason: ' + tostatus);
+              $ionicLoading.show({ template: 'Error While getting current Location' , noBackdrop: true, duration: 2000 });
             }
           });
         } else {
           alert('Geocode was not successful for the following reason: ' + status);
+          $ionicLoading.show({ template: 'Error While getting current Location' , noBackdrop: true, duration: 2000 });
         }
       });
 
@@ -619,14 +647,17 @@ angular.module('starter.controllers', [])
         channels: [$scope.getAllChannels()]
      });
   });
+
   });
 })
 
 
-.controller('Dash1Ctrl', function($scope, Pubnub, $rootScope, $cordovaGeolocation, $ionicPlatform, $window, locationIQ, pubnub_pub_key, pubnub_sub_key, ApiService, LocationService, $state) {
+.controller('Dash1Ctrl', function($scope, Pubnub, $rootScope, $cordovaGeolocation, $ionicPlatform, $window, locationIQ, pubnub_pub_key, pubnub_sub_key, ApiService, LocationService, $state, $ionicLoading) {
   $scope.randomIntFromInterval =  function (min,max){
      return Math.floor(Math.random()*(max-min+1)+min);
   }
+
+  $ionicLoading.show({ template: 'Application started!', noBackdrop: true, duration: 2000 });
 
   $ionicPlatform.ready(function() {
         var posOptions = {timeout: 10000, enableHighAccuracy: false};
@@ -648,12 +679,16 @@ angular.module('starter.controllers', [])
                 globalLocation.edgeId = resp.data.osm_id;
                 LocationService.setCurrLocation(globalLocation);
                 $state.go('tab.dash')
+              }else{
+                console.log("No road found lat long");
+                $ionicLoading.show({ template: 'No road found lat long' , noBackdrop: true, duration: 2000 });
               }
             });
             
           }, function(err) {
             // error
             console.log("Error while getting Current Position");
+            $ionicLoading.show({ template: 'Error while getting Current Position' , noBackdrop: true, duration: 2000 });
             //$window.location.reload(true);
           });
       });
