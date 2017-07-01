@@ -108,7 +108,7 @@ angular.module('starter.controllers', [])
       .then(function (position) {
          Global_Car.location.lat  = position.coords.latitude;
          Global_Car.location.long = position.coords.longitude;
-         Global_Car.speed = $scope.randomIntFromInterval(5,70);
+         //Global_Car.speed = $scope.randomIntFromInterval(5,70); for now
 
         //find road id from lat long and set subscriber to channel
         ApiService.getRoadId(Global_Car.location.lat, Global_Car.location.long).then(function(resp){
@@ -272,7 +272,7 @@ angular.module('starter.controllers', [])
                 msg.roadId  = road.roadId;
                 msg.isCar = false;
                 */
-                if(Global_Car.status == 'Cluster Head' && msg.code == 100 && $scope.navigationStarted){
+                if(Global_Car.status == 'Cluster Head' && msg.code == 101 && $scope.navigationStarted){
                   debugger;
                   //HACK: QuickFix: Need To Fix: assume that congestion has occured and re-routing algorithm needs to start
                   //1. check whether roadId falls in current path route id's
@@ -323,6 +323,8 @@ angular.module('starter.controllers', [])
                 console.log("Acknowledge re-routing init to Cluster head");
 
             }else if(msg.code == 103 && Global_Car.status == 'Cluster Head' && $scope.navigationStarted){
+                debugger;
+                $scope.showMessage('vib:' + Global_Car.vib.length + ' nearbyVehicleMatrix:' + $scope.nearbyVehicleMatrix.length);
                 if(Global_Car.vib.length == $scope.nearbyVehicleMatrix.length){
                   console.log("Starting assignment of new route to vehicles"); 
                   $scope.showMessage('Starting assignment of new route to vehicles');
@@ -356,26 +358,6 @@ angular.module('starter.controllers', [])
                 console.log("Re-Routing Process Completed: New Route assigned");
               }
 
-            }else{
-              debugger;
-              /*var lowestSpeed = {};
-              lowestSpeed.speed = Number.MAX_SAFE_INTEGER;            
-              lowestSpeed.vehicle = new Car();
-              for (var [key, value] of Global_Car.vib.entries()) {
-                console.log(key + ' = ' + value);
-                if(value.speed < lowestSpeed.speed ){
-                  lowestSpeed.speed = value.speed;
-                  lowestSpeed.vehicle = value;
-                }
-              }
-
-              //notify other vehicles
-              if(lowestSpeed.vehicle.uuid == Global_Car.uuid){
-                Global_Car.status = 'Cluster Head';
-                //pubnub notify
-                $scope.publishMessage(Global_Car, $scope.subscribedChannels.local_channels);
-              }*/
-              debugger;
             }
           } 
       });
@@ -384,7 +366,6 @@ angular.module('starter.controllers', [])
 
   $rootScope.$on(Pubnub.getPresenceEventNameFor($scope.subscribedChannels.local_channels), function (ngEvent, pnEvent) {
       // apply presence event (join|leave) on users list
-      console.log(pnEvent);
       if(pnEvent.action != 'state-change'){
         $scope.hereNow();
         if(pnEvent.action == 'join' && pnEvent.uuid == Global_Car.uuid && $scope.navigationStarted){
@@ -414,6 +395,7 @@ angular.module('starter.controllers', [])
 
   //here now
   $scope.hereNow = function(){
+    debugger;
     Pubnub.hereNow(
         {
             channels: [$scope.subscribedChannels.local_channels], 
@@ -422,6 +404,7 @@ angular.module('starter.controllers', [])
         },
         function (status, response) {
             // handle status, response
+            debugger;
             if(!status.error){
               console.log("online users: " + response.totalOccupancy );
               if(!angular.isUndefined(response.channels[$scope.subscribedChannels.local_channels])){
