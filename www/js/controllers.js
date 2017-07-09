@@ -253,6 +253,11 @@
                         $scope.publishMessage(reRoutingInitMsg, $scope.subscribedChannels.local_channels);
                         $scope.showMessage('Congestion at current Route, ReRouting algorithm Initiated');
                         console.log("Congestion at current Route, ReRouting algorithm Init.");
+                    }else if(msg.code == 105 && ('car-' + msg.vehicleId) == Global_Car.uuid){
+                        if(!msg.isActive){
+                            $scope.showMessage('Access Revoked, Please contact support team.');
+                            $scope.logout();
+                        }
                     }
                 }
             });

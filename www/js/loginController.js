@@ -19,7 +19,8 @@ angular.module('starter.logincontrollers', []).controller('LoginCtrl', function(
              template: 'Loading...'
         });
         ApiService.login(vehicle.vehicleId, vehicle.password).then(function(resp){
-            if(resp.data == true){
+            if(resp.data !=  false){
+                $scope.successVehicleResponse = resp.data;
                 $ionicPlatform.ready(function() {
                 var posOptions = {
                     timeout: 10000,
@@ -38,7 +39,8 @@ angular.module('starter.logincontrollers', []).controller('LoginCtrl', function(
                             globalLocation.speed = $scope.randomIntFromInterval(5, 70);
                             globalLocation.channel = "local_channel-" + resp.data.osm_id;
                             globalLocation.edgeId = resp.data.osm_id;
-                            globalLocation.uuid = 'car-' + vehicle.vehicleId; 
+                            globalLocation.uuid = 'car-' + vehicle.vehicleId;
+                            globalLocation.isActive = $scope.successVehicleResponse.isActive;
                             LocationService.setCurrLocation(globalLocation);
                             $state.go('tab.dash');
                             $scope.showMessage('Application started!');
