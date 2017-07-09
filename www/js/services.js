@@ -1,6 +1,6 @@
 angular.module('starter.services', [])
 
-.service('ApiService', function($http, locationIQ, $q, graphhopper) {
+.service('ApiService', function($http, locationIQ, $q, graphhopper, serverUrl) {
     return{
       getRoadId : function (lat, long) {
          
@@ -22,10 +22,30 @@ angular.module('starter.services', [])
             method: 'GET',
             url: 'https://graphhopper.com/api/1/route?point='+ fromLocation.lat +'%2C'+ fromLocation.long +'&point='+ toLocation.lat + '%2C' + toLocation.long + '&type=json&locale=en-US&vehicle=car&weighting=fastest&elevation=true&ch.disable=true&algorithm=alternative_route&alternative_route.max_paths=10&use_miles=false&layer=Omniscale&key=' + graphhopper 
         });
+      },
+      login : function(vehicleId, password){
+        return $http({
+            method: 'POST',
+            url: serverUrl + 'vehicle/mobile/login?vehicleId='+ vehicleId + '&password='+ password 
+        });
+      },
+      register : function(vehicleId, password){
+        return $http({
+            method: 'POST',
+            url: serverUrl + 'vehicle/mobile/register?vehicleId='+ vehicleId + '&password='+ password 
+        });
       }
     }
     
 })
+
+.service('ChannelService', [ '$ionicPlatform', function($ionicPlatform){
+   this.currentChannel = {};
+   this.setCurrChannel = function(channel){this.currentChannel = channel};
+   this.getCurrChannel = function(){
+     return this.currentChannel;
+   };
+}])
 
 .service('LocationService', ['$cordovaGeolocation', 'ApiService', '$ionicPlatform', '$q', function($cordovaGeolocation, ApiService, $ionicPlatform, $q){
    this.currentLocation = {};

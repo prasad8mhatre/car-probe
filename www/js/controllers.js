@@ -1,4 +1,4 @@
-    angular.module('starter.controllers', []).controller('DashCtrl', function($scope, Pubnub, $rootScope, $cordovaGeolocation, $ionicPlatform, $window, locationIQ, pubnub_pub_key, pubnub_sub_key, ApiService, LocationService, $interval, $ionicLoading, ionicToast, $timeout) {
+    angular.module('starter.controllers', []).controller('DashCtrl', function($scope, Pubnub, $rootScope, $cordovaGeolocation, $ionicPlatform, $window, locationIQ, pubnub_pub_key, pubnub_sub_key, ApiService, LocationService, $interval, $ionicLoading, ionicToast, $timeout, ChannelService, $state) {
     $ionicPlatform.ready(function() {
         console.log("Dash Board controller started");
         $scope.carDetails = {};
@@ -54,6 +54,12 @@
         $scope.showMessage = function(message) {
             ionicToast.show(message, 'bottom', false, 5000);
         }
+
+        $scope.getAllChannels = function() {
+            var channels = [];
+            channels.push($scope.subscribedChannels.global_channel);
+            return channels.concat($scope.subscribedChannels.local_channels);
+        }
         /* -------------------
         Global Object
         ----------------------*/
@@ -69,20 +75,22 @@
         Global_Car.location = currlocation.location;
         Global_Car.edgeId = currlocation.edgeId;
         Global_Car.status = "Cluster Head";
-        
+        Global_Car.uuid = currlocation.uuid;
         $scope.subscribedChannels.local_channels.push(currlocation.channel);
+        ChannelService.setCurrChannel($scope.getAllChannels());
         $scope.reRoutingCompleted = false;
 
 
         // send location update after 20 sec
-        $interval(function() {
+        var interval = $interval(function() {
             $scope.getLocation();
         }, 20000);
         //pubnub
-        var newUUID = 'car-' + $scope.randomIntFromInterval(1, 1000);
-        Global_Car.uuid = newUUID;
+        //var newUUID = 'car-' + $scope.randomIntFromInterval(1, 1000);
+       
+
         Pubnub.init({
-            uuid: newUUID,
+            uuid: Global_Car.uuid,
             publishKey: pubnub_pub_key,
             subscribeKey: pubnub_sub_key
         });
@@ -148,7 +156,7 @@
           Global_Car.location.lat  = position.coords.latitude;
           Global_Car.location.long = position.coords.longitude;
           Global_Car.speed = position.coords.speed;
-          debugger;
+          
           $scope.sendTrafficUpdate();
           $scope.setCurrentChannel();
 
@@ -162,7 +170,7 @@
             });
         }
         /*$scope.setCurrentChannel = function(){
-          debugger;
+          
           if( $scope.subscribedChannels.local_channels.length != 0){
             Pubnub.unsubscribe({
               channels: [$scope.subscribedChannels.local_channels]
@@ -177,7 +185,7 @@
               $scope.subscribedChannels.local_channels = [];
               $scope.subscribedChannels.local_channels.push("local_channel-" + resp.data.osm_id);
               Global_Car.edgeId = resp.data.osm_id;
-              debugger;
+              
               $scope.subscribeToChannel($scope.getAllChannels());
               //$rootScope.$broadcast('channel-fetched');
               $scope.logSubscribedChannels();
@@ -232,7 +240,7 @@
                       msg.isCar = false;
                       */
                     if (Global_Car.status == 'Cluster Head' && msg.code == 101 && $scope.navigationStarted) {
-                        debugger;
+                        
                         //HACK: QuickFix: Need To Fix: assume that congestion has occured and re-routing algorithm needs to start
                         //1. check whether roadId falls in current path route id's
                         //2. if yes then if(cluster head)  then
@@ -254,16 +262,16 @@
                 // add message to the messages list
                 console.log(envelope.message);
                 var msg = envelope.message;
-                debugger;
+                
                 if (Global_Car.uuid != msg.uuid) {
                     /*1. handle cluster head selection - clustering algorithm
                       find lowest speed vehicle
                     */
-                    debugger;
+                    
                     //msg code == 102
                     if (msg.code == 102 && Global_Car.status == 'Cluster Member' && $scope.navigationStarted) {
                         
-                        debugger;
+                        
                         var reRoutingInitAckMsg = {};
                         reRoutingInitAckMsg.allPath = Global_Car.alternativeRoutes;
                         reRoutingInitAckMsg.currentPath = Global_Car.currentRoute;
@@ -277,7 +285,7 @@
                         $scope.showMessage('Acknowledge re-routing init to Cluster head');
                         console.log("Acknowledge re-routing init to Cluster head");
                     } else if (msg.code == 103 && Global_Car.status == 'Cluster Head' && $scope.navigationStarted) {
-                        debugger;
+                        
                         //$scope.showMessage('vib:' + Global_Car.vib.length + ' nearbyVehicleMatrix:' + $scope.nearbyVehicleMatrix.length);
                         if(!$scope.isPresentInMatrix(msg)){
                             $scope.nearbyVehicleMatrix.queue(msg); 
@@ -292,7 +300,7 @@
                             //sort all nearbyVehicle
                             //route assignment logic
                             //publish route assignment <carUUId, route> on road_id with msg code = 104
-                            debugger;
+                            
                             var assignedRoutes = $scope.getAssignedRoute();
                             var reRoutingAssignedRouteMsg = {};
                             reRoutingAssignedRouteMsg.code = 104;
@@ -310,7 +318,7 @@
                     var routes = new Map(msg.routes);
                     if (routes.get(Global_Car.uuid) != undefined) {
                         //assign that route -- route assigned
-                        debugger;
+                        
                         Global_Car.currentRoute = routes.get(Global_Car.uuid);
                         $scope.showMessage('Re-Routing Process Completed: New Route assigned');
                         console.log("Re-Routing Process Completed: New Route assigned");
@@ -333,7 +341,7 @@
             }
         });
         $rootScope.$on(Pubnub.getEventNameFor('subscribe', 'presence', 'status'), function(ngEvent, status, response) {
-            debugger;
+            
             if (status.category == 'PNConnectedCategory') {
                 console.log('successfully connected to channels', response);
                 Pubnub.setState({
@@ -396,16 +404,16 @@
                 var vehicle = $scope.nearbyVehicleMatrix.dequeue();
                 //processedVehicle.set(vehicle.uuid, vehicle);
                 var route = {};
-                debugger;
+                
                 if (vehicleCount == 0 && vehicle.allPath.length >= 1) {
-                    debugger;
+                    
                     route = vehicle.allPath[vehicle.allPath.length-1];
                     var currentVehicle = angular.copy(vehicle);
                     currentVehicle.currentRoute = $scope.uniqueList(route.instructions);
                     processedVehicle.set(vehicle.uuid, vehicle);
                 } else {
                     //var allPath = vehicle.allPath;
-                    debugger;
+                    
                     var currentVehicle = angular.copy(vehicle);
                     var previousFootPrints = [];
                     //dbksp
@@ -420,11 +428,11 @@
                     angular.forEach(vehicle.allPath, function(val) {
                         uniquePathList.push($scope.uniqueList(val.instructions));
                     });
-                    debugger;
+                    
                     for (var [key, value] of processedVehicle.entries()) {
                         previousFootPrints.concat($scope.uniqueList(key.currentRoute));
                     }
-                    debugger;
+                    
                     //calculating footprints weights
                     angular.forEach(uniquePathList, function(uniquePathVal, uniquePathKey) {
                         var footPrintWeight = {};
@@ -439,13 +447,13 @@
                         });
                         weightedFootprint.queue(footPrintWeight);
                     });
-                    debugger;
+                    
                     //getting lowest footprint weight route
                     route = vehicle.allPath[weightedFootprint.dequeue().index];
                 }
                 vehicleCount ++;
                 //assigned a new calculated route to vehicle
-                debugger
+                
                 assignedRoutes.set(vehicle.uuid, route);
             }
             $scope.addGlobalCarInNearByMatrix();
@@ -486,7 +494,7 @@
         }
         $scope.navigate = function(fromLocation, toLocation) {
             var geocoder = new google.maps.Geocoder();
-            debugger;
+            
             if ($scope.navigationStarted) {
                 $scope.showMessage('Stopping Current Navigation!');
                 $scope.navigationStarted = false;
@@ -500,7 +508,7 @@
                     fromlocationL.lat = results[0].geometry.location.lat();
                     fromlocationL.long = results[0].geometry.location.lng();
                     $scope.fromLocationLatLong = fromlocationL;
-                    debugger;
+                    
                     //to location
                     geocoder.geocode({
                         'address': toLocation.formatted_address + ""
@@ -511,9 +519,9 @@
                             toLocationL.long = toresults[0].geometry.location.lng();
                             $scope.toLocationLatLong = toLocationL;
                             //TODO: fire graphopper api for direction
-                            debugger;
+                            
                             ApiService.getDirection($scope.fromLocationLatLong, $scope.toLocationLatLong).then(function(resp) {
-                                debugger;
+                                
                                 $scope.directionInstruction = resp.data.paths;
                                 angular.forEach($scope.directionInstruction, function(val) {
                                     var route = {};
@@ -562,7 +570,7 @@
                     uniqueList.add(val.street_name);
                 }
             });
-            debugger;
+            
             return uniqueList;
         }
 
@@ -582,52 +590,24 @@
         /* $scope.publishMessagtoPeer = function(){
            $scope.publishMessage("Hi", $scope.subscribedChannels.local_channels)
          }*/
+         $scope.logout = function(){
+            Pubnub.unsubscribe({
+                channels: [$scope.getAllChannels()]
+            });
+            $state.go('login');
+         }
+
+         $scope.$on("$destroy", function() {
+            // clean up here
+            $interval.cancel(interval);
+        });
+
         //tear down - unsubscribe
         window.addEventListener("beforeunload", function(e) {
             // watch.clearWatch();
             Pubnub.unsubscribe({
                 channels: [$scope.getAllChannels()]
             });
-        });
-    });
-}).controller('Dash1Ctrl', function($scope, Pubnub, $rootScope, $cordovaGeolocation, $ionicPlatform, $window, locationIQ, pubnub_pub_key, pubnub_sub_key, ApiService, LocationService, $state, $ionicLoading, ionicToast) {
-    $scope.randomIntFromInterval = function(min, max) {
-        return Math.floor(Math.random() * (max - min + 1) + min);
-    }
-    $scope.showMessage = function(message) {
-        ionicToast.show(message, 'bottom', false, 5000);
-    }
-    $scope.showMessage('Application started!');
-    $ionicPlatform.ready(function() {
-        var posOptions = {
-            timeout: 10000,
-            enableHighAccuracy: false
-        };
-        $cordovaGeolocation.getCurrentPosition(posOptions).then(function(position) {
-            //_.getChannelName(position.coords.latitude, position.coords.longitude);
-            //find road id from lat long and set subscriber to channel
-            ApiService.getRoadId(position.coords.latitude, position.coords.longitude).then(function(resp) {
-                if (resp.data.osm_type == 'way') {
-                    var globalLocation = {};
-                    var location = {};
-                    location.lat = position.coords.latitude;
-                    location.long = position.coords.longitude;
-                    globalLocation.location = location;
-                    globalLocation.speed = $scope.randomIntFromInterval(5, 70);
-                    globalLocation.channel = "local_channel-" + resp.data.osm_id;
-                    globalLocation.edgeId = resp.data.osm_id;
-                    LocationService.setCurrLocation(globalLocation);
-                    $state.go('tab.dash')
-                } else {
-                    console.log("No road found lat long");
-                    $scope.showMessage('No road found lat long');
-                }
-            });
-        }, function(err) {
-            // error
-            console.log("Error while getting Current Position");
-            $scope.showMessage('Error while getting Current Position');
-            //$window.location.reload(true);
         });
     });
 })

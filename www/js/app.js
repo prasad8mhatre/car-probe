@@ -5,7 +5,7 @@
 // the 2nd parameter is an array of 'requires'
 // 'starter.services' is found in services.js
 // 'starter.controllers' is found in controllers.js
-angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', 'pubnub.angular.service', 'ngCordova', 'ion-google-place', 'ionic-toast'])
+angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', 'pubnub.angular.service', 'ngCordova', 'ion-google-place', 'ionic-toast', 'starter.logincontrollers', 'starter.registercontrollers'])
 
 .run(function($ionicPlatform, LocationService) {
   $ionicPlatform.ready(function() {
@@ -34,29 +34,46 @@ angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', '
   // Each state's controller can be found in controllers.js
   $stateProvider
 
+  .state('login', {
+    url: '/login',
+    templateUrl: 'templates/login.html',
+    controller: 'LoginCtrl',
+    cache : false
+  })
+
+  .state('register', {
+    url: '/register',
+    templateUrl: 'templates/register.html',
+    controller: 'RegisterCtrl',
+    cache : false
+  })
+
   // setup an abstract state for the tabs directive
     .state('tab', {
     url: '/tab',
     abstract: true,
-    templateUrl: 'templates/tabs.html'
+    templateUrl: 'templates/tabs.html',
+    cache : false
   })
 
-  // Each tab has its own nav history stack:
+  /*// Each tab has its own nav history stack:
   .state('tab.dash1', {
     url: '/dash1',
+    cache: false,
     views: {
       'tab-dash1': {
         templateUrl: 'templates/tab-dash1.html',
         controller: 'Dash1Ctrl'
       }
     }
-  })
+  })*/
 
 
   .state('tab.dash', {
     url: '/dash',
     views: {
       'tab-dash': {
+        cache : false,
         templateUrl: 'templates/tab-dash.html',
         controller: 'DashCtrl'
       }
@@ -65,13 +82,18 @@ angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', '
 
   
 
+  
+
+
+  
+
   // if none of the above states are matched, use this as the fallback
-  $urlRouterProvider.otherwise('/tab/dash1');
+  $urlRouterProvider.otherwise('/login');
 
 })
 
 .constant('locationIQ', 'e9fbe60b2244e1a62302')
 .constant('pubnub_pub_key', 'pub-c-4f947445-11f6-4a97-8f14-ee302a228bdc')
 .constant('pubnub_sub_key', 'sub-c-4287ea34-57c7-11e7-b679-0619f8945a4f')
-.constant('graphhopper', '2a24e316-61ea-4850-b231-4ef2fe25d229');
-//.constant('graphhopper', '1ca93964-3020-4d6c-99d8-457e015855b2');//
+.constant('graphhopper', '2a24e316-61ea-4850-b231-4ef2fe25d229')
+.constant('serverUrl', 'http://localhost:3000/');//

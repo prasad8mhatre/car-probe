@@ -1,0 +1,30 @@
+<ion-view view-title="Login">
+    <ion-content>
+        <div class="list">
+            <label class="item item-input">
+                <span class="input-label">
+                    Vehicle Id
+                </span>
+                <input ng-model="vehicle.vehicleId" type="text">
+                </input>
+            </label>
+            <label class="item item-input">
+                <span class="input-label">
+                    Password
+                </span>
+                <input ng-model="vehicle.password" type="password">
+                </input>
+            </label>
+        </div>
+        <div class="padding">
+            <button class="button button-block button-positive" ng-click="signIn(vehicle)">
+                Sign-In
+            </button>
+            <p class="text-center">
+                <a href="#/register">
+                    Register
+                </a>
+            </p>
+        </div>
+    </ion-content>
+</ion-view>

@@ -2,7 +2,8 @@
     <ion-content class="padding">
        <div class="card">
             <div class="item item-text-wrap">
-               Vehicles - {{carDetails.status}}
+               <span>Vehicles - {{carDetails.status}}</span>
+               <span style="left:0; right:0; float:right" class="ion-log-out" ng-click="logout()"></span>
                <h6>{{carDetails.uuid}}</h6>
                <h5>
                   Latitude: {{carDetails.location.lat}}
