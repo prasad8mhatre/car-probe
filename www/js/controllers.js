@@ -83,7 +83,9 @@
 
         // send location update after 20 sec
         var interval = $interval(function() {
-            $scope.getLocation();
+            if($scope.navigationStarted){
+                $scope.getLocation();
+            }
         }, 20000);
         //pubnub
         //var newUUID = 'car-' + $scope.randomIntFromInterval(1, 1000);
@@ -103,8 +105,12 @@
                 enableHighAccuracy: false
             };
             $cordovaGeolocation.getCurrentPosition(posOptions).then(function(position) {
-                Global_Car.location.lat = position.coords.latitude;
-                Global_Car.location.long = position.coords.longitude;
+                //FIXME: Mock location
+                /*Global_Car.location.lat = position.coords.latitude;
+                Global_Car.location.long = position.coords.longitude;*/
+
+                Global_Car.location.lat = 18.53222;
+                Global_Car.location.long = 73.84253;
                 //Global_Car.speed = $scope.randomIntFromInterval(5,70); for now
                 //find road id from lat long and set subscriber to channel
                 ApiService.getRoadId(Global_Car.location.lat, Global_Car.location.long).then(function(resp) {
@@ -477,7 +483,9 @@
             var trafficUpdate = new TrafficUpdate(Global_Car.uuid, Global_Car.location.lat, Global_Car.location.long, Global_Car.speed, Global_Car.heading, Global_Car.edgeId, Global_Car.status, true);
             trafficUpdate.edgeId = Global_Car.edgeId; // Done
             delete trafficUpdate['location'];
+            debugger;
             $scope.publishMessage(trafficUpdate, $scope.subscribedChannels.global_channel);
+            console.log('Sent traffic update');
             $scope.showMessage('Sent traffic update');
         }
         $scope.addVehicle = function(vehicle) {
@@ -497,6 +505,13 @@
                 $scope.carDetails.status = "Cluster Member";
             }
         }
+
+        $scope.millisToMinutesAndSeconds = function (millis) {
+          var minutes = Math.floor(millis / 60000);
+          var seconds = ((millis % 60000) / 1000).toFixed(0);
+          return minutes + ":" + (seconds < 10 ? '0' : '') + seconds;
+        }
+
         $scope.navigate = function(fromLocation, toLocation) {
             var geocoder = new google.maps.Geocoder();
             
@@ -526,13 +541,22 @@
                             //TODO: fire graphopper api for direction
                             
                             ApiService.getDirection($scope.fromLocationLatLong, $scope.toLocationLatLong).then(function(resp) {
-                                
                                 $scope.directionInstruction = resp.data.paths;
                                 angular.forEach($scope.directionInstruction, function(val) {
                                     var route = {};
-                                    route.time = val.time;
-                                    route.distance = val.distance;
-                                    route.instructions = val.instructions;
+                                    route.time =  $scope.millisToMinutesAndSeconds(val.time);
+                                    route.distance = Math.round(val.distance / 100) / 10;
+                                    route.instructions = [];
+                                    angular.forEach(val.instructions, function(inst, key){
+                                      var instruction = {};
+                                      instruction.distance = Math.round(inst.distance  / 100) / 10;  
+                                      instruction.time = $scope.millisToMinutesAndSeconds(inst.time);
+                                      instruction.sign = inst.sign;
+                                      instruction.interval = inst.interval;
+                                      instruction.street_name = inst.street_name;
+                                      instruction.text = inst.text;
+                                      route.instructions.push(instruction);
+                                    });
                                     Global_Car.alternativeRoutes.push(route);
                                 })
                                 Global_Car.currentRoute = Global_Car.alternativeRoutes[0];

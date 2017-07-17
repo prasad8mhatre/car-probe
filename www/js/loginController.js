@@ -33,8 +33,11 @@ angular.module('starter.logincontrollers', []).controller('LoginCtrl', function(
                         if (resp.data.osm_type == 'way') {
                             var globalLocation = {};
                             var location = {};
-                            location.lat = position.coords.latitude;
-                            location.long = position.coords.longitude;
+                            //FIXME: Mock location
+                            //location.lat = position.coords.latitude;
+                            //location.long = position.coords.longitude;
+                            location.lat = 18.53222;
+                            location.long = 73.84253;
                             globalLocation.location = location;
                             globalLocation.speed = $scope.randomIntFromInterval(5, 70);
                             globalLocation.channel = "local_channel-" + resp.data.osm_id;
@@ -48,12 +51,14 @@ angular.module('starter.logincontrollers', []).controller('LoginCtrl', function(
                         } else {
                             console.log("No road found lat long");
                             $scope.showMessage('No road found lat long');
+                            $ionicLoading.hide();
                         }
                     });
                 }, function(err) {
                     // error
                     console.log("Error while getting Current Position");
                     $scope.showMessage('Error while getting Current Position');
+                    $ionicLoading.hide();
                     //$window.location.reload(true);
                 });
             });
