@@ -29,7 +29,9 @@ angular.module('starter.logincontrollers', []).controller('LoginCtrl', function(
                 $cordovaGeolocation.getCurrentPosition(posOptions).then(function(position) {
                     //_.getChannelName(position.coords.latitude, position.coords.longitude);
                     //find road id from lat long and set subscriber to channel
-                    ApiService.getRoadId(position.coords.latitude, position.coords.longitude).then(function(resp) {
+                    //position.coords.latitude = 18.53222;
+                   // position.coords.longitude = 73.84253;
+                    ApiService.getRoadId(18.53222, 73.84253).then(function(resp) {
                         if (resp.data.osm_type == 'way') {
                             var globalLocation = {};
                             var location = {};

@@ -1,4 +1,4 @@
-    angular.module('starter.controllers', []).controller('DashCtrl', function($scope, Pubnub, $rootScope, $cordovaGeolocation, $ionicPlatform, $window, locationIQ, pubnub_pub_key, pubnub_sub_key, ApiService, LocationService, $interval, $ionicLoading, ionicToast, $timeout, ChannelService, $state) {
+    angular.module('starter.controllers', []).controller('DashCtrl', function($scope, Pubnub, $rootScope, $cordovaGeolocation, $ionicPlatform, $window, locationIQ, pubnub_pub_key, pubnub_sub_key, ApiService, LocationService, $interval, $ionicLoading, ionicToast, $timeout, ChannelService, $state, _) {
     $ionicPlatform.ready(function() {
         console.log("Dash Board controller started");
         $scope.carDetails = {};
@@ -114,8 +114,9 @@
                 //Global_Car.speed = $scope.randomIntFromInterval(5,70); for now
                 //find road id from lat long and set subscriber to channel
                 ApiService.getRoadId(Global_Car.location.lat, Global_Car.location.long).then(function(resp) {
+                   
                     if (resp.data.osm_type == 'way') {
-                        if ($scope.subscribedChannels.local_channels.length != 0) {
+                            if ($scope.subscribedChannels.local_channels.length != 0) {
                             Pubnub.unsubscribe({
                                 channels: [$scope.subscribedChannels.local_channels]
                             });
@@ -127,6 +128,7 @@
                         $scope.subscribeToChannel($scope.subscribedChannels.local_channels);
                         $scope.logSubscribedChannels();
                         console.log("subscribered channel: " + $scope.subscribedChannels.local_channels);
+                        $scope.sendTrafficUpdate();
                     }
                 });
             }, function(err) {
@@ -209,9 +211,16 @@
             return channels.concat($scope.subscribedChannels.local_channels);
         }
         $scope.setChannelState = function(channel) {
+            var car_state ={
+                uuid: Global_Car.uuid,
+                speed: Global_Car.speed,
+                edgeId: Global_Car.edgeId,
+                status: Global_Car.status
+            };
+
             Pubnub.setState({
                 state: {
-                    "car_state": Global_Car
+                    "car_state": car_state
                 },
                 uuid: Global_Car.uuid,
                 channels: [channel]
@@ -235,6 +244,7 @@
         $rootScope.$on(Pubnub.getMessageEventNameFor($scope.subscribedChannels.global_channel), function(ngEvent, envelope) {
             $scope.$apply(function() {
                 // add message to the messages list
+                
                 console.log(envelope.message);
                 var msg = envelope.message;
                 if (!msg.isCar) {
@@ -270,6 +280,7 @@
         });
         $rootScope.$on(Pubnub.getMessageEventNameFor($scope.subscribedChannels.local_channels), function(ngEvent, envelope) {
             $scope.$apply(function() {
+                
                 // add message to the messages list
                 console.log(envelope.message);
                 var msg = envelope.message;
@@ -292,6 +303,7 @@
                         reRoutingInitAckMsg.code = 103;
                         reRoutingInitAckMsg.uuid = Global_Car.uuid;
                         reRoutingInitAckMsg.roadId = Global_Car.roadId;
+                        
                         $scope.publishMessage(reRoutingInitAckMsg, $scope.subscribedChannels.local_channels);
                         $scope.showMessage('Acknowledge re-routing init to Cluster head');
                         console.log("Acknowledge re-routing init to Cluster head");
@@ -319,6 +331,7 @@
                             reRoutingAssignedRouteMsg.roadId = Global_Car.roadId;
                             reRoutingAssignedRouteMsg.routes = Array.from(assignedRoutes);
                             reRoutingAssignedRouteMsg.uuid = Global_Car.uuid;
+                            
                             $scope.publishMessage(reRoutingAssignedRouteMsg, $scope.subscribedChannels.local_channels);
                             $scope.showMessage('Re-Routing Assigned Routes message sent');
                             console.log("Re-Routing Assigned Routes message sent");
@@ -373,13 +386,16 @@
                 // handle status, response
                 if (!status.error) {
                     console.log("online users: " + response.totalOccupancy);
+                    
                     if (!angular.isUndefined(response.channels[$scope.subscribedChannels.local_channels])) {
                         var lowestSpeed = {};
                         lowestSpeed.speed = Number.MAX_SAFE_INTEGER;
                         lowestSpeed.vehicleUUID = '';
+                        
                         angular.forEach(response.channels[$scope.subscribedChannels.local_channels].occupants, function(data) {
                             if (!angular.isUndefined(data.state)) {
                                 var vehicle = data.state.car_state;
+                                
                                 if (vehicle.uuid != Global_Car.uuid) {
                                     Global_Car.vib.set(vehicle.uuid, vehicle);
                                 }
@@ -391,6 +407,7 @@
                         });
 
                         //updating state
+                        
                         if (lowestSpeed.vehicleUUID != "") {
                             if (lowestSpeed.vehicleUUID == Global_Car.uuid) {
                                 Global_Car.status = "Cluster Head";
@@ -471,6 +488,8 @@
             return assignedRoutes;
         }
         $scope.publishMessage = function(data, channel) {
+            console.log("Total Message Size:" + $scope.calculate_payload_size(channel, data));
+            
             Pubnub.publish({
                 channel: [channel],
                 message: data
@@ -483,7 +502,7 @@
             var trafficUpdate = new TrafficUpdate(Global_Car.uuid, Global_Car.location.lat, Global_Car.location.long, Global_Car.speed, Global_Car.heading, Global_Car.edgeId, Global_Car.status, true);
             trafficUpdate.edgeId = Global_Car.edgeId; // Done
             delete trafficUpdate['location'];
-            debugger;
+            
             $scope.publishMessage(trafficUpdate, $scope.subscribedChannels.global_channel);
             console.log('Sent traffic update');
             $scope.showMessage('Sent traffic update');
@@ -504,6 +523,12 @@
             } else {
                 $scope.carDetails.status = "Cluster Member";
             }
+        }
+
+        $scope.calculate_payload_size = function( channel, message ) {
+            return encodeURIComponent(
+                channel + JSON.stringify(message)
+            ).length + 100;
         }
 
         $scope.millisToMinutesAndSeconds = function (millis) {
@@ -542,13 +567,16 @@
                             
                             ApiService.getDirection($scope.fromLocationLatLong, $scope.toLocationLatLong).then(function(resp) {
                                 $scope.directionInstruction = resp.data.paths;
+                                
                                 angular.forEach($scope.directionInstruction, function(val) {
                                     var route = {};
+                                    
                                     route.time =  $scope.millisToMinutesAndSeconds(val.time);
                                     route.distance = Math.round(val.distance / 100) / 10;
                                     route.instructions = [];
                                     angular.forEach(val.instructions, function(inst, key){
                                       var instruction = {};
+                                      
                                       instruction.distance = Math.round(inst.distance  / 100) / 10;  
                                       instruction.time = $scope.millisToMinutesAndSeconds(inst.time);
                                       instruction.sign = inst.sign;
@@ -557,7 +585,11 @@
                                       instruction.text = inst.text;
                                       route.instructions.push(instruction);
                                     });
-                                    Global_Car.alternativeRoutes.push(route);
+                                    
+                                    if(!$scope.isPresentInList(Global_Car.alternativeRoutes, route)){
+                                       
+                                       Global_Car.alternativeRoutes.push(route);
+                                    }
                                 })
                                 Global_Car.currentRoute = Global_Car.alternativeRoutes[0];
                                 Global_Car.currentPathInstructionIndex = 0;
@@ -615,6 +647,17 @@
             }
             return found;
         }
+
+        $scope.isPresentInList = function(list, element){
+            var found = false;
+            angular.forEach(list, function(val){
+                if(_.isEqual(val, element)){
+                    found = true;
+                }
+            });
+            return found;
+        }
+
         //$scope.subscribeToChannel($scope.global_local_channel);
         /* $scope.publishMessagtoPeer = function(){
            $scope.publishMessage("Hi", $scope.subscribedChannels.local_channels)

@@ -35,7 +35,7 @@
                 <ion-google-place placeholder="To Address" ng-model="toLocation" search-placeholder="To Address" />
             </div>
           </div>
-          <div class="row" >
+          <div class="row" ng-hide="fromLocation.length <= 0 || toLocation.length <= 0">
             <button class="button button-block button-positive" ng-click="navigate(fromLocation, toLocation)">
               Navigate
             </button>

@@ -5,7 +5,7 @@
 // the 2nd parameter is an array of 'requires'
 // 'starter.services' is found in services.js
 // 'starter.controllers' is found in controllers.js
-angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', 'pubnub.angular.service', 'ngCordova', 'ion-google-place', 'ionic-toast', 'starter.logincontrollers', 'starter.registercontrollers'])
+angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', 'pubnub.angular.service', 'ngCordova', 'ion-google-place', 'ionic-toast', 'starter.logincontrollers', 'starter.registercontrollers', 'underscore'])
 
 .run(function($ionicPlatform, LocationService) {
   $ionicPlatform.ready(function() {
