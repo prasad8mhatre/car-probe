@@ -105,12 +105,12 @@
                 enableHighAccuracy: false
             };
             $cordovaGeolocation.getCurrentPosition(posOptions).then(function(position) {
+                
+                Global_Car.location.lat = position.coords.latitude;
+                Global_Car.location.long = position.coords.longitude;
                 //FIXME: Mock location
-                /*Global_Car.location.lat = position.coords.latitude;
-                Global_Car.location.long = position.coords.longitude;*/
-
-                Global_Car.location.lat = 18.53222;
-                Global_Car.location.long = 73.84253;
+                //Global_Car.location.lat = 18.53222;
+                //Global_Car.location.long = 73.84253;
                 //Global_Car.speed = $scope.randomIntFromInterval(5,70); for now
                 //find road id from lat long and set subscriber to channel
                 ApiService.getRoadId(Global_Car.location.lat, Global_Car.location.long).then(function(resp) {
@@ -137,38 +137,7 @@
                 $window.location.reload(true);
             });
         }
-        //location tracking
-        /*
-         */
-        /*var watchOptions = {
-          timeout : 3000,
-          enableHighAccuracy: false // may cause errors if true
-        };
-
-        var watch = $cordovaGeolocation.watchPosition(watchOptions);
-        watch.then(
-          null,
-          function(err) {
-            // error
-            console.log("Error while getting Current Position");
-            $window.location.reload(true);
-          },
-          function(position) {
-            if(!$scope.onload){
-              $scope.postLocationActivity(position);
-              $scope.logSubscribedChannels();
-            }
-
-        });*/
-        /*$scope.postLocationActivity = function(position){
-          Global_Car.location.lat  = position.coords.latitude;
-          Global_Car.location.long = position.coords.longitude;
-          Global_Car.speed = position.coords.speed;
-          
-          $scope.sendTrafficUpdate();
-          $scope.setCurrentChannel();
-
-        }*/
+        
         $scope.logSubscribedChannels = function() {
             Pubnub.whereNow({
                 uuid: Global_Car.uuid
@@ -177,34 +146,6 @@
                 console.log(JSON.stringify(response));
             });
         }
-        /*$scope.setCurrentChannel = function(){
-          
-          if( $scope.subscribedChannels.local_channels.length != 0){
-            Pubnub.unsubscribe({
-              channels: [$scope.subscribedChannels.local_channels]
-            });
-          }
-
-          //find road id from lat long and set subscriber to channel
-          ApiService.getRoadId(Global_Car.location.lat, Global_Car.location.long).then(function(resp){
-
-            if(resp.data.osm_type == 'way'){
-
-              $scope.subscribedChannels.local_channels = [];
-              $scope.subscribedChannels.local_channels.push("local_channel-" + resp.data.osm_id);
-              Global_Car.edgeId = resp.data.osm_id;
-              
-              $scope.subscribeToChannel($scope.getAllChannels());
-              //$rootScope.$broadcast('channel-fetched');
-              $scope.logSubscribedChannels();
-              console.log("subscribered channel: " + $scope.subscribedChannels.local_channels);
-              $scope.setChannelState($scope.subscribedChannels.local_channels);
-
-            }
-          });
-
-
-        }*/
         $scope.getAllChannels = function() {
             var channels = [];
             channels.push($scope.subscribedChannels.global_channel);
@@ -658,16 +599,13 @@
             return found;
         }
 
-        //$scope.subscribeToChannel($scope.global_local_channel);
-        /* $scope.publishMessagtoPeer = function(){
-           $scope.publishMessage("Hi", $scope.subscribedChannels.local_channels)
-         }*/
-         $scope.logout = function(){
+        
+        $scope.logout = function(){
             Pubnub.unsubscribe({
                 channels: [$scope.getAllChannels()]
             });
             $state.go('login');
-         }
+        }
 
          $scope.$on("$destroy", function() {
             // clean up here

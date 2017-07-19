@@ -27,19 +27,20 @@ angular.module('starter.logincontrollers', []).controller('LoginCtrl', function(
                     enableHighAccuracy: false
                 };
                 $cordovaGeolocation.getCurrentPosition(posOptions).then(function(position) {
-                    //_.getChannelName(position.coords.latitude, position.coords.longitude);
                     //find road id from lat long and set subscriber to channel
+                    //FIXME: Mock location
                     //position.coords.latitude = 18.53222;
                    // position.coords.longitude = 73.84253;
-                    ApiService.getRoadId(18.53222, 73.84253).then(function(resp) {
+                    ApiService.getRoadId(position.coords.latitude, position.coords.longitude).then(function(resp) {
                         if (resp.data.osm_type == 'way') {
                             var globalLocation = {};
                             var location = {};
+                            
+                            location.lat = position.coords.latitude;
+                            location.long = position.coords.longitude;
                             //FIXME: Mock location
-                            //location.lat = position.coords.latitude;
-                            //location.long = position.coords.longitude;
-                            location.lat = 18.53222;
-                            location.long = 73.84253;
+                            //location.lat = 18.53222;
+                            //location.long = 73.84253;
                             globalLocation.location = location;
                             globalLocation.speed = $scope.randomIntFromInterval(5, 70);
                             globalLocation.channel = "local_channel-" + resp.data.osm_id;
