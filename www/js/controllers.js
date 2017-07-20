@@ -116,18 +116,20 @@
                 ApiService.getRoadId(Global_Car.location.lat, Global_Car.location.long).then(function(resp) {
                    
                     if (resp.data.osm_type == 'way') {
+                        if(Global_Car.edgeId != resp.data.osm_id){
                             if ($scope.subscribedChannels.local_channels.length != 0) {
-                            Pubnub.unsubscribe({
-                                channels: [$scope.subscribedChannels.local_channels]
-                            });
+                                Pubnub.unsubscribe({
+                                    channels: [$scope.subscribedChannels.local_channels]
+                                });
+                            }
+                            $scope.subscribedChannels.local_channels = [];
+                            $scope.subscribedChannels.local_channels.push("local_channel-" + resp.data.osm_id);
+                            Global_Car.edgeId = resp.data.osm_id;
+                            $scope.setChannelState($scope.subscribedChannels.local_channels);
+                            $scope.subscribeToChannel($scope.subscribedChannels.local_channels);
+                            $scope.logSubscribedChannels();
+                            console.log("subscribered channel: " + $scope.subscribedChannels.local_channels);
                         }
-                        $scope.subscribedChannels.local_channels = [];
-                        $scope.subscribedChannels.local_channels.push("local_channel-" + resp.data.osm_id);
-                        Global_Car.edgeId = resp.data.osm_id;
-                        $scope.setChannelState($scope.subscribedChannels.local_channels);
-                        $scope.subscribeToChannel($scope.subscribedChannels.local_channels);
-                        $scope.logSubscribedChannels();
-                        console.log("subscribered channel: " + $scope.subscribedChannels.local_channels);
                         $scope.sendTrafficUpdate();
                     }
                 });
@@ -349,7 +351,7 @@
                         $scope.reRoutingCompleted = true;
                         $timeout(function () {
                             $scope.reRoutingCompleted = false;
-                        }, 5000);
+                        }, 10000);
                        
                     }
                 }
@@ -357,6 +359,7 @@
         });
         $rootScope.$on(Pubnub.getPresenceEventNameFor($scope.subscribedChannels.local_channels), function(ngEvent, pnEvent) {
             // apply presence event (join|leave) on users list
+            
             if (pnEvent.action != 'state-change') {
                 $scope.hereNow();
                 if (pnEvent.action == 'join' && pnEvent.uuid == Global_Car.uuid && $scope.navigationStarted) {
@@ -538,6 +541,7 @@
         }
 
         $scope.navigate = function(fromLocation, toLocation) {
+            
             var geocoder = new google.maps.Geocoder();
             
             if ($scope.navigationStarted) {
@@ -596,15 +600,16 @@
                                 $scope.navigationStarted = true;
                                 //adding current vehicle into nearbyVehicle
                                 $scope.addGlobalCarInNearByMatrix();
+                                
                                 $scope.showMessage('Navigating through fastest route!');
                             });
                         } else {
-                            alert('Geocode was not successful for the following reason: ' + tostatus);
+                            //alert('Geocode was not successful for the following reason: ' + tostatus);
                             $scope.showMessage('Error While getting current Location');
                         }
                     });
                 } else {
-                    alert('Geocode was not successful for the following reason: ' + status);
+                    //alert('Geocode was not successful for the following reason: ' + status);
                     $scope.showMessage('Error While getting current Location');
                 }
             });
