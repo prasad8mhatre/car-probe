@@ -547,6 +547,10 @@
             if ($scope.navigationStarted) {
                 $scope.showMessage('Stopping Current Navigation!');
                 $scope.navigationStarted = false;
+                Global_Car.currentRoute = [];
+                Global_Car.alternativeRoutes = [];
+                $scope.fromLocationLatLong = {};
+                $scope.toLocationLatLong = {};
             }
             //from location
             geocoder.geocode({
@@ -600,7 +604,7 @@
                                 $scope.navigationStarted = true;
                                 //adding current vehicle into nearbyVehicle
                                 $scope.addGlobalCarInNearByMatrix();
-                                
+                                $scope.$apply();
                                 $scope.showMessage('Navigating through fastest route!');
                             });
                         } else {
