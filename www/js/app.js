@@ -96,4 +96,4 @@ angular.module('starter', ['ionic', 'starter.controllers', 'starter.services', '
 .constant('pubnub_pub_key', 'pub-c-4f947445-11f6-4a97-8f14-ee302a228bdc')
 .constant('pubnub_sub_key', 'sub-c-4287ea34-57c7-11e7-b679-0619f8945a4f')
 .constant('graphhopper', '2a24e316-61ea-4850-b231-4ef2fe25d229')
-.constant('serverUrl', 'https://dashboard.heroku.com:3000/');//
+.constant('serverUrl', 'https://serene-basin-44447.herokuapp.com/');//
