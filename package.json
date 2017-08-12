@@ -33,5 +33,8 @@
       "cordova-plugin-geolocation": {},
       "cordova-plugin-nativegeocoder": {}
     }
+  },
+  "script":{
+    "start": "node server.js"
   }
 }
