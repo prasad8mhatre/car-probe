@@ -268,10 +268,17 @@
                         reRoutingInitMsg.text = msg.text;
                         reRoutingInitMsg.roadId = msg.roadId;
                         reRoutingInitMsg.uuid = Global_Car.uuid;
+                        $scope.carDetails.currentRoute.time = parseFloat($scope.carDetails.currentRoute.time) + 7;
+                        //$scope.$apply();
+                        //debugger;
                         $scope.publishMessage(reRoutingInitMsg, $scope.subscribedChannels.local_channels);
                         $scope.showMessage('Congestion at current Route, ReRouting algorithm Initiated');
                         console.log("Congestion at current Route, ReRouting algorithm Init.");
-                    }else if(msg.code == 105 && ('car-' + msg.vehicleId) == Global_Car.uuid){
+                    }else if(Global_Car.status == 'Cluster Member' && msg.code == 101 && $scope.navigationStarted){
+                        $scope.carDetails.currentRoute.time = parseFloat($scope.carDetails.currentRoute.time) + 7;
+                        //debugger;
+                        $scope.$apply();
+                    }if(msg.code == 105 && ('car-' + msg.vehicleId) == Global_Car.uuid){
                         if(!msg.isActive){
                             $scope.showMessage('Access Revoked, Please contact support team.');
                             $scope.logout();
@@ -344,7 +351,7 @@
                     var routes = new Map(msg.routes);
                     if (routes.get(Global_Car.uuid) != undefined) {
                         //assign that route -- route assigned
-                        
+                        //debugger;
                         Global_Car.currentRoute = routes.get(Global_Car.uuid);
                         $scope.showMessage('Re-Routing Process Completed: New Route assigned');
                         console.log("Re-Routing Process Completed: New Route assigned");
@@ -604,7 +611,7 @@
                                 $scope.navigationStarted = true;
                                 //adding current vehicle into nearbyVehicle
                                 $scope.addGlobalCarInNearByMatrix();
-                                $scope.$apply();
+                                //$scope.$apply();
                                 $scope.showMessage('Navigating through fastest route!');
                             });
                         } else {
